@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#define HEX_LENGTH 129
+
 class HMAC_SHA512 {
 public:
 	HMAC_SHA512(const std::string& key, const std::string& msg) {
@@ -17,8 +19,8 @@ public:
 		HMAC_Update(ctx, reinterpret_cast<const unsigned char*>(msg.c_str()), msg.size());
 
 		// Finish HMAC computation and fetch result.
-		unsigned char* result = new unsigned char[129];
-		unsigned int result_len = 129;
+		unsigned char* result = new unsigned char[HEX_LENGTH];
+		unsigned int result_len = HEX_LENGTH;
 		HMAC_Final(ctx, result, &result_len);
 		for (int i = 0; i < result_len; i++) {
 			digest_.push_back(int(result[i]));

@@ -52,7 +52,7 @@ TEST_CASE("General Tests"){
             std::cerr<<err.what()<<'\n';
         }
 
-        b = b && (cfg.get<std::string>("name").compare("EXMO API KEYS") == 0);
+        b = b && (cfg.get<bool>("test") == true);
 
         REQUIRE(b);
     }

@@ -4,7 +4,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/exception/exception.hpp>
 
-#include "../lib/exmo-api-lib/exmo_api.hpp"
+#include "../hpp/binance_api.hpp"
 
 #define CONFIGFILE "../cfg/secrets.json" 
 
@@ -26,10 +26,24 @@ int main(int argc, char** argv){
     pub_key = config.get<std::string>("public_key");
     sec_key = config.get<std::string>("secret_key");
 
-    exmo_api api(pub_key,sec_key);
-    json_data response = api.call("user_info", "");
+    // binance_api api(pub_key,sec_key);
+    // json_data response = api.call("/order/test?symbol=VETUSDT",api.build({"side=BUY","type=LIMIT", "recWindow=60000"}));
 
-    std::cout<<"User Info:\n"<<response<<'\n';
+    #include <string>
+    #include "../hpp/hmac_sha256.hpp"
+
+    http::connection con;
+    headers_t headers; headers["X-MBX-APIKEY"] = pub_key;
+
+    auto param = "symbol=VETUSDT&side=BUY&type=LIMIT&timeInForce=GTC&quantity=700&price=0.015&recvWindow=60000&timestamp=" + std::to_string((unsigned long)::time(nullptr)*1000);
+
+    param += "&signature=" + HMAC_SHA256(sec_key, param).hex_digest();
+
+    con.request("https://api.binance.com/api/v3/order/test?",http::post(),param,headers,http::REQTYPE::POST);
+
+    std::string response = con.get_response();
+
+    std::cout<<response<<std::endl;
  
     return 0;
 }
