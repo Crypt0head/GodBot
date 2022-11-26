@@ -1,11 +1,11 @@
-#ifndef HTTP_CONNECTION_HPP
-#define HTTP_CONNECTION_HPP
+#pragma once
 
-#include "curl_object.hpp"
 #include <iostream>
 #include <string>
 #include <map>
 #include <stdexcept>
+
+#include "curl_object.hpp"
 
 using json_data = std::string;
 using headers_t = std::map<std::string, std::string>;
@@ -66,22 +66,13 @@ namespace http {
 		void request(const std::string url, const request& r, const std::string& params = "", const headers_t& headers = headers_t(), const REQTYPE &rtype = REQTYPE::GET) {
 			recv_data_.clear();
 			recv_header_.clear();
-			std::string final_url = url;
-			std::string final_params;
-
-			if(params.length()!=0){
-				final_params += params;
-			}
-
-			if(rtype == REQTYPE::GET){
-				final_url+="?"+params;
-			}
+			std::string final_url = url + "?";
+			std::string final_params = params;
 
 			curl_easy_setopt(curl_object::get_instance(), CURLOPT_URL, final_url.c_str());
 			curl_easy_setopt(curl_object::get_instance(), CURLOPT_WRITEDATA, &recv_data_);
 			curl_easy_setopt(curl_object::get_instance(), CURLOPT_HEADERDATA, &recv_header_);
 			curl_easy_setopt(curl_object::get_instance(), CURLOPT_WRITEFUNCTION, write_received_data_to_string);
-
 
 			if(rtype == REQTYPE::POST){
 				curl_easy_setopt(curl_object::get_instance(), CURLOPT_POSTFIELDS, final_params.c_str());
@@ -90,8 +81,6 @@ namespace http {
 
 			curl_slist* list = r.prepare(headers);
 			curl_easy_setopt(curl_object::get_instance(), CURLOPT_HTTPHEADER, list);
-
-			std::cout<<final_url<<final_params<<std::endl;
 
 			CURLcode rescode = curl_easy_perform(curl_object::get_instance());
 
@@ -117,5 +106,3 @@ namespace http {
 	};
 
 }
-
-#endif

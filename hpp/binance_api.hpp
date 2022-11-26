@@ -43,7 +43,7 @@ public:
 		std::string params;
 		
 		params.append(p);
-        timestamp_++;
+        timestamp_*=1000;
 		params.append("&timestamp=" + std::to_string(timestamp_));
 
         std::string api_key_header = api_cfg_.get<std::string>("api_Header");
@@ -53,8 +53,6 @@ public:
 		
         std::string sign = this->signature(params);
         params.append("&signature=" + sign);
-
-        std::cout<<url_<<method<<params<<std::endl;
 
 		connection_.request(url_ + method, http::post(), params, headers, http::REQTYPE::POST);
 		return connection_.get_response();
