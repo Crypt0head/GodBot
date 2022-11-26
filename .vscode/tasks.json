@@ -36,7 +36,9 @@
                 "${workspaceRoot}/tests/general_tests.cpp",
                 "-o",
                 "${workspaceRoot}/bin/Test.out",
-                "-lcurl"
+                "-lcurl",
+                "-lssl",
+                "-lcrypto"
             ],
             "options": {
                 "cwd": "${fileDirname}"

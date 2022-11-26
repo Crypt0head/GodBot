@@ -14,7 +14,9 @@ namespace http {
 
 	enum class REQTYPE{
 		POST,
-		GET
+		GET,
+		DELETE,
+		PUT
 	};
 
 	class request {
@@ -74,7 +76,11 @@ namespace http {
 			curl_easy_setopt(curl_object::get_instance(), CURLOPT_HEADERDATA, &recv_header_);
 			curl_easy_setopt(curl_object::get_instance(), CURLOPT_WRITEFUNCTION, write_received_data_to_string);
 
-			if(rtype == REQTYPE::POST){
+			if(rtype == http::REQTYPE::DELETE){
+				curl_easy_setopt(curl_object::get_instance(), CURLOPT_CUSTOMREQUEST, "DELETE");
+			}
+
+			if(rtype == REQTYPE::POST || rtype == REQTYPE::DELETE){
 				curl_easy_setopt(curl_object::get_instance(), CURLOPT_POSTFIELDS, final_params.c_str());
 				curl_easy_setopt(curl_object::get_instance(), CURLOPT_POSTFIELDSIZE, final_params.size());
 			}

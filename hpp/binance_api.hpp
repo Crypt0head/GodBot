@@ -39,7 +39,7 @@ public:
 		timestamp_ = ::time(nullptr);
 	}
 
-	json_data call(const std::string& method, const std::string& p) {
+	json_data call(const std::string& method, const std::string& p, const http::REQTYPE &rtype = http::REQTYPE::GET) {
 		std::string params;
 		
 		params.append(p);
@@ -54,7 +54,7 @@ public:
         std::string sign = this->signature(params);
         params.append("&signature=" + sign);
 
-		connection_.request(url_ + method, http::post(), params, headers, http::REQTYPE::POST);
+		connection_.request(url_ + method, http::post(), params, headers, rtype);
 		return connection_.get_response();
 	}
 

@@ -1,9 +1,15 @@
 #define CATCH_CONFIG_MAIN
 
-#include "catch.hpp"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/exception/exception.hpp>
+#include <boost/iostreams/stream.hpp>
+
+#include "catch.hpp"
+#include "../hpp/binance_api.hpp"
+
+namespace json_parser = boost::property_tree::json_parser;
+namespace iostreams = boost::iostreams;
 
 using ptree_t = boost::property_tree::ptree;
 
@@ -39,16 +45,17 @@ using ptree_t = boost::property_tree::ptree;
 //     }
 // }
 
+ptree_t cfg;
+
 TEST_CASE("General Tests"){
     bool b = false;
-    ptree_t cfg;
 
     SECTION("Config file exists"){
         try{ 
-            boost::property_tree::json_parser::read_json("../cfg/secrets.json",cfg);
+            json_parser::read_json("../cfg/secrets.json",cfg);
             b = true;
         }
-        catch(boost::wrapexcept<boost::property_tree::json_parser_error> &err){
+        catch(boost::wrapexcept<json_parser::json_parser_error> &err){
             std::cerr<<err.what()<<'\n';
         }
 
@@ -59,13 +66,97 @@ TEST_CASE("General Tests"){
 
     SECTION("Config file doesn't exist"){
         try{ 
-            boost::property_tree::json_parser::read_json("../cfg/secrets_1.json",cfg);
+            json_parser::read_json("../cfg/secrets_1.json",cfg);
             b = true;
         }
-        catch(boost::wrapexcept<boost::property_tree::json_parser_error> &err){
-            std::cerr<<err.what()<<'\n';
+        catch(boost::wrapexcept<json_parser::json_parser_error> &err){
         }
 
         REQUIRE(b == false);
+    }
+
+    try{ 
+        json_parser::read_json("../cfg/secrets.json",cfg);
+    }
+    catch(boost::wrapexcept<json_parser::json_parser_error> &err){
+        std::cerr<<err.what()<<'\n';
+    }
+}
+
+ulong orderId = 0;
+
+TEST_CASE("SPOT TRAIDING"){
+    bool b = false;
+
+    SECTION("TEST ORDER"){
+        std::string key = cfg.get<std::string>("public_key");
+        std::string sec = cfg.get<std::string>("secret_key");
+
+        binance_api api(key,sec);
+
+        try{
+            auto res = api.call("/order/test",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=700","price=0.015", "recvWindow=60000"}),http::REQTYPE::POST);
+            b = !static_cast<bool>(res.compare("{}"));
+        }
+        catch(std::exception &e){
+            std::cerr<<e.what()<<std::endl;
+        }
+
+        REQUIRE(b);
+    }
+
+    SECTION("SET SPOT ORDER"){
+        std::string key = cfg.get<std::string>("public_key");
+        std::string sec = cfg.get<std::string>("secret_key");
+
+        binance_api api(key,sec);
+        ptree_t res;
+
+        try{
+            auto str = api.call("/order",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=700","price=0.015"}),http::REQTYPE::POST);
+            iostreams::array_source as(&str[0],str.size());
+            iostreams::stream<iostreams::array_source> is(as);
+            json_parser::read_json(is,res);
+            
+            try{
+                orderId = res.get<ulong>("orderId");
+                b = true;
+            }
+            catch(std::exception &e){
+                std::cerr<<e.what()<<std::endl;
+            }
+        }
+        catch(std::exception &e){
+            std::cerr<<e.what()<<std::endl;
+        }
+
+        REQUIRE(b);
+    }
+
+    SECTION("CANCEL SPOT ORDER"){
+        std::string key = cfg.get<std::string>("public_key");
+        std::string sec = cfg.get<std::string>("secret_key");
+
+        binance_api api(key,sec);
+        ptree_t res;
+
+        try{
+            auto str = api.call("/order",api.build({"symbol=VETUSDT", "orderId=" + std::to_string(orderId), "recvWindow=60000"}),http::REQTYPE::DELETE);
+            iostreams::array_source as(&str[0],str.size());
+            iostreams::stream<iostreams::array_source> is(as);
+            json_parser::read_json(is,res);
+            
+            try{
+                    b = !static_cast<bool>(res.get<std::string>("status").compare("CANCELED"));
+            }
+            catch(std::exception &e){
+                std::cerr<<e.what()<<std::endl;
+            }
+        }
+        catch(std::exception &e){
+            std::cerr<<e.what()<<std::endl;
+        }
+
+        REQUIRE(b);
     }
 }
