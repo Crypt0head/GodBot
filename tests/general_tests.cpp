@@ -113,7 +113,8 @@ TEST_CASE("SPOT TRAIDING"){
         ptree_t res;
 
         try{
-            auto str = api.call("/order",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=700","price=0.015"}),http::REQTYPE::POST);
+            //auto str = api.call("/order",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=700","price=0.015"}),http::REQTYPE::POST);
+            auto str = api.open_spot_order("VETUSDT",ORDER_SIDE::BUY,ORDER_TYPE::LIMIT,700.,0.015);
             iostreams::array_source as(&str[0],str.size());
             iostreams::stream<iostreams::array_source> is(as);
             json_parser::read_json(is,res);
@@ -123,7 +124,7 @@ TEST_CASE("SPOT TRAIDING"){
                 b = true;
             }
             catch(std::exception &e){
-                std::cerr<<e.what()<<std::endl;
+                std::cerr<<e.what()<<std::endl<<str<<std::endl;
             }
         }
         catch(std::exception &e){

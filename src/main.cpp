@@ -27,9 +27,9 @@ int main(int argc, char** argv){
     sec_key = config.get<std::string>("secret_key");
 
     binance_api api(pub_key,sec_key);
-    json_data response = api.call("/order",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=700","price=0.015"}));
+    // json_data response = api.call("/order",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=700","price=0.015"}));
 
-    std::cout<<response<<std::endl;
+    // std::cout<<response<<std::endl;
  
     return 0;
 }
