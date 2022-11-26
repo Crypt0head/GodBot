@@ -95,6 +95,12 @@ public:
 		return call(endpoint,params,http::REQTYPE::POST);
 	}
 
+	json_data close_spot_order(const std::string& symbol, const ulong& orderId){
+		std::string endpoint = "/order";
+		std::string params = "symbol=" + symbol  + "&orderId=" + std::to_string(orderId);
+		return call(endpoint,params,http::REQTYPE::DELETE);
+	}
+
 	std::string build(std::vector<std::string> params_) {
 
 		std::string params = "";
