@@ -35,6 +35,12 @@ enum class ORDER_TYPE{
 	LIMIT_MAKER
 };
 
+enum class SECURITY_TYPE{
+	SIGNED,
+	PUB,
+	NONE
+};
+
 class binance_api {
 private:
 	std::chrono::milliseconds timestamp_;
@@ -62,23 +68,27 @@ public:
 
 		url_ = api_cfg_.get<std::string>("api_Base_url") + api_cfg_.get<std::string>("api_Version");
 		connection_ = http::connection();
-		timestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+		timestamp_ = get_timestamp();
 	}	
 
-	json_data call(const std::string& method, const std::string& p, const http::REQTYPE &rtype = http::REQTYPE::GET) {
+	json_data call(const std::string& method, const std::string& p, const http::REQTYPE& rtype = http::REQTYPE::GET, const SECURITY_TYPE& stype = SECURITY_TYPE::NONE) {
 		std::string params;
+		std::map<std::string, std::string> headers;
 		
 		params.append(p);
-		
-		params.append("&timestamp=" + std::to_string(timestamp_.count()));
 
-        std::string api_key_header = api_cfg_.get<std::string>("api_Header");
+		if(stype != SECURITY_TYPE::NONE){
+			params.append("&timestamp=" + std::to_string(get_timestamp().count()));
+			std::string api_key_header = api_cfg_.get<std::string>("api_Header");
+			headers[api_key_header] = key_;
 
-		std::map<std::string, std::string> headers;
-		headers[api_key_header] = key_;
-		
-        std::string sign = this->signature(params);
-        params.append("&signature=" + sign);
+			
+			if(stype == SECURITY_TYPE::SIGNED){
+				std::string sign = this->signature(params);
+				params.append("&signature=" + sign);
+			}
+		}
+
 		connection_.request(url_ + method, http::post(), params, headers, rtype);
 		return connection_.get_response();
 	}
@@ -97,7 +107,7 @@ public:
 		std::string params = "symbol=" + symbol + "&side=" + order_side_.at(side) 
 							+ "&type=" + order_type_.at(type) + "&quantity=" + std::to_string(quantity) 
 							+ "&price=" + std::to_string(price) + "&timeInForce=" + time_in_force_.at(tif);
-		return call(endpoint,params,http::REQTYPE::POST);
+		return call(endpoint,params,http::REQTYPE::POST, SECURITY_TYPE::SIGNED);
 	}
 
 	/**
@@ -108,7 +118,7 @@ public:
 	json_data close_spot_order(const std::string& symbol, const ulong& orderId){
 		std::string endpoint = "/order";
 		std::string params = "symbol=" + symbol  + "&orderId=" + std::to_string(orderId);
-		return call(endpoint,params,http::REQTYPE::DELETE);
+		return call(endpoint,params,http::REQTYPE::DELETE, SECURITY_TYPE::SIGNED);
 	}
 
 	/**
@@ -118,7 +128,13 @@ public:
 	json_data close_all_spot_orders(const std::string& symbol){
 		std::string endpoint = "/openOrders";
 		std::string params = "symbol=" + symbol;
-		return call(endpoint,params,http::REQTYPE::DELETE);
+		return call(endpoint,params,http::REQTYPE::DELETE, SECURITY_TYPE::SIGNED);
+	}
+
+	json_data get_symbol_price(const std::string& symbol){
+		std::string endpoint = "/ticker/price";
+		std::string params = "symbol=" + symbol;
+		return call(endpoint,params,http::REQTYPE::GET);
 	}
 
 	std::string build(std::vector<std::string> params_) {
@@ -136,6 +152,10 @@ private:
 	std::string signature(const std::string& params) {
 		HMAC_SHA256 hmac_sha256(secret_, params);
 		return hmac_sha256.hex_digest();
+	}
+
+	static std::chrono::milliseconds get_timestamp(){
+		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	}
 };
 
