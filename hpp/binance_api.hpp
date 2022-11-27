@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ctime>
+#include <chrono>
 #include <cassert>
 #include <string>
 #include <map>
@@ -37,7 +37,7 @@ enum class ORDER_TYPE{
 
 class binance_api {
 private:
-	unsigned long timestamp_;
+	std::chrono::milliseconds timestamp_;
 	std::string key_;
 	std::string secret_;
 	std::string url_;
@@ -62,15 +62,15 @@ public:
 
 		url_ = api_cfg_.get<std::string>("api_Base_url") + api_cfg_.get<std::string>("api_Version");
 		connection_ = http::connection();
-		timestamp_ = ::time(nullptr);
+		timestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	}	
 
 	json_data call(const std::string& method, const std::string& p, const http::REQTYPE &rtype = http::REQTYPE::GET) {
 		std::string params;
 		
 		params.append(p);
-        timestamp_*=1000;
-		params.append("&timestamp=" + std::to_string(timestamp_));
+		
+		params.append("&timestamp=" + std::to_string(timestamp_.count()));
 
         std::string api_key_header = api_cfg_.get<std::string>("api_Header");
 
@@ -79,13 +79,18 @@ public:
 		
         std::string sign = this->signature(params);
         params.append("&signature=" + sign);
-
 		connection_.request(url_ + method, http::post(), params, headers, rtype);
 		return connection_.get_response();
 	}
 
 	/**
 		@brief Open order on given symbol
+		@param symbol	- currancy symbol
+		@param side		- buy/sell
+		@param type		- order type (LIMIT, MARKET. ...)
+		@param quantity	- quantity coins to buy/sell
+		@param price	- order price
+		@param tif		- sets order expiration rule
 	*/
 	json_data open_spot_order(const std::string& symbol,const ORDER_SIDE& side, const ORDER_TYPE& type, const double& quantity, const double& price, const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC){
 		std::string endpoint = "/order";
@@ -95,9 +100,24 @@ public:
 		return call(endpoint,params,http::REQTYPE::POST);
 	}
 
+	/**
+		@brief Cancel order on given symbol by it's Id
+		@param symbol	- currancy symbol
+		@param orderId	- order's Id
+	*/
 	json_data close_spot_order(const std::string& symbol, const ulong& orderId){
 		std::string endpoint = "/order";
 		std::string params = "symbol=" + symbol  + "&orderId=" + std::to_string(orderId);
+		return call(endpoint,params,http::REQTYPE::DELETE);
+	}
+
+	/**
+		@brief Cancel all orders on given symbol
+		@param symbol	- currancy symbol
+	*/
+	json_data close_all_spot_orders(const std::string& symbol){
+		std::string endpoint = "/openOrders";
+		std::string params = "symbol=" + symbol;
 		return call(endpoint,params,http::REQTYPE::DELETE);
 	}
 
