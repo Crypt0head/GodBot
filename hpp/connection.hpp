@@ -71,6 +71,10 @@ namespace http {
 			std::string final_url = url + "?";
 			std::string final_params = params;
 
+			if(rtype == http::REQTYPE::GET){
+				final_url +=params;
+			}
+
 			curl_easy_setopt(curl_object::get_instance(), CURLOPT_URL, final_url.c_str());
 			curl_easy_setopt(curl_object::get_instance(), CURLOPT_WRITEDATA, &recv_data_);
 			curl_easy_setopt(curl_object::get_instance(), CURLOPT_HEADERDATA, &recv_header_);
@@ -85,8 +89,12 @@ namespace http {
 				curl_easy_setopt(curl_object::get_instance(), CURLOPT_POSTFIELDSIZE, final_params.size());
 			}
 
-			curl_slist* list = r.prepare(headers);
-			curl_easy_setopt(curl_object::get_instance(), CURLOPT_HTTPHEADER, list);
+			if(headers.size()>0)
+			{
+				curl_slist* list = r.prepare(headers);
+				curl_easy_setopt(curl_object::get_instance(), CURLOPT_HTTPHEADER, list);
+			}
+
 			CURLcode rescode = curl_easy_perform(curl_object::get_instance());
 
 			if (rescode != CURLE_OK) {

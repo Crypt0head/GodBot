@@ -63,7 +63,7 @@ TEST_CASE("SPOT TRAIDING"){
         binance_api api(key,sec);
 
         try{
-            auto res = api.call("/order/test",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=1000","price=0.015", "recvWindow=60000"}),http::REQTYPE::POST);
+            auto res = api.call("/order/test",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=1000","price=0.015", "recvWindow=60000"}),http::REQTYPE::POST, SECURITY_TYPE::SIGNED);
             b = !static_cast<bool>(res.compare("{}"));
         }
         catch(std::exception &e){
@@ -159,6 +159,35 @@ TEST_CASE("SPOT TRAIDING"){
         }
         catch(std::exception &e){
             std::cerr<<e.what()<<std::endl;
+        }
+
+        REQUIRE(b);
+    }
+};
+
+TEST_CASE("MARKET DATA"){
+    bool b = false;
+
+    SECTION("GET MARKET DATA"){
+        std::string key = cfg.get<std::string>("public_key");
+        std::string sec = cfg.get<std::string>("secret_key");
+
+        binance_api api(key,sec);
+        ptree_t res;
+
+        try{
+
+            auto str = api.get_symbol_price("LUNCBUSD");
+            iostreams::array_source as(&str[0],str.size());
+            iostreams::stream<iostreams::array_source> is(as);
+            json_parser::read_json(is,res);
+
+            b = !static_cast<bool>(res.get<std::string>("symbol").compare("LUNCBUSD"));
+
+        }
+        catch(std::exception &e){
+            std::cerr<<e.what()<<std::endl;
+
         }
 
         REQUIRE(b);
