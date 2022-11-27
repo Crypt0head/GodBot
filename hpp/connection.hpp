@@ -87,7 +87,6 @@ namespace http {
 
 			curl_slist* list = r.prepare(headers);
 			curl_easy_setopt(curl_object::get_instance(), CURLOPT_HTTPHEADER, list);
-
 			CURLcode rescode = curl_easy_perform(curl_object::get_instance());
 
 			if (rescode != CURLE_OK) {
@@ -95,6 +94,8 @@ namespace http {
 				msg += curl_easy_strerror(rescode);
 				throw std::runtime_error(msg);
 			}
+			
+			curl_object::clean_up();
 		}
 
 		json_data get_response() {

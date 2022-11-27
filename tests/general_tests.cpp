@@ -13,38 +13,6 @@ namespace iostreams = boost::iostreams;
 
 using ptree_t = boost::property_tree::ptree;
 
-// TEST_CASE("Equalution test for USD and CHF")
-// {
-//     Dollar usd(12);
-//     Frank chf(5);
-//     bool b = false;
-
-//     SECTION("12 USD == 12 Money(USD)"){
-//         b = usd==Money(12, Currency::USD);
-//         REQUIRE(b == true);
-//     }
-
-//     SECTION("12 USD != 12 CHF"){
-//         b = usd==Money(12,Currency::CHF);
-//         REQUIRE(b == false);
-//     }
-
-//     SECTION("5 CHF == 5 Money(CHF)"){
-//         b = chf==Money(5, Currency::CHF);
-//         REQUIRE(b == true);
-//     }
-
-//     SECTION("5 CHF != 5 USD"){
-//         b = chf==Money(5,Currency::USD);
-//         REQUIRE(b == false);
-//     }
-
-//     SECTION("5 CHF != 12 USD"){
-//         b = chf==usd;
-//         REQUIRE(b == false);
-//     }
-// }
-
 ptree_t cfg;
 
 TEST_CASE("General Tests"){
@@ -95,7 +63,7 @@ TEST_CASE("SPOT TRAIDING"){
         binance_api api(key,sec);
 
         try{
-            auto res = api.call("/order/test",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=700","price=0.015", "recvWindow=60000"}),http::REQTYPE::POST);
+            auto res = api.call("/order/test",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=1000","price=0.015", "recvWindow=60000"}),http::REQTYPE::POST);
             b = !static_cast<bool>(res.compare("{}"));
         }
         catch(std::exception &e){
@@ -105,7 +73,7 @@ TEST_CASE("SPOT TRAIDING"){
         REQUIRE(b);
     }
 
-    SECTION("SET SPOT ORDER"){
+    SECTION("OPEN SPOT ORDER"){
         std::string key = cfg.get<std::string>("public_key");
         std::string sec = cfg.get<std::string>("secret_key");
 
@@ -113,7 +81,8 @@ TEST_CASE("SPOT TRAIDING"){
         ptree_t res;
 
         try{
-            auto str = api.call("/order",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=700","price=0.015"}),http::REQTYPE::POST);
+            auto str = api.open_spot_order("VETUSDT",ORDER_SIDE::BUY,ORDER_TYPE::LIMIT,700.,0.015);
+
             iostreams::array_source as(&str[0],str.size());
             iostreams::stream<iostreams::array_source> is(as);
             json_parser::read_json(is,res);
@@ -123,7 +92,7 @@ TEST_CASE("SPOT TRAIDING"){
                 b = true;
             }
             catch(std::exception &e){
-                std::cerr<<e.what()<<std::endl;
+                std::cerr<<e.what()<<std::endl<<str<<std::endl;
             }
         }
         catch(std::exception &e){
@@ -141,7 +110,7 @@ TEST_CASE("SPOT TRAIDING"){
         ptree_t res;
 
         try{
-            auto str = api.call("/order",api.build({"symbol=VETUSDT", "orderId=" + std::to_string(orderId), "recvWindow=60000"}),http::REQTYPE::DELETE);
+            std::string str = api.close_spot_order("VETUSDT",orderId);
             iostreams::array_source as(&str[0],str.size());
             iostreams::stream<iostreams::array_source> is(as);
             json_parser::read_json(is,res);
@@ -150,7 +119,42 @@ TEST_CASE("SPOT TRAIDING"){
                     b = !static_cast<bool>(res.get<std::string>("status").compare("CANCELED"));
             }
             catch(std::exception &e){
-                std::cerr<<e.what()<<std::endl;
+                std::cerr<<e.what()<<std::endl<<str<<std::endl;
+            }
+        }
+        catch(std::exception &e){
+            std::cerr<<e.what()<<std::endl;
+        }
+
+        REQUIRE(b);
+    }
+
+    SECTION("CANCEL ALL SPOT ORDERS"){
+        std::string key = cfg.get<std::string>("public_key");
+        std::string sec = cfg.get<std::string>("secret_key");
+
+        binance_api api(key,sec);
+        ptree_t res;
+
+        auto tmp = api.open_spot_order("VETBUSD",ORDER_SIDE::BUY,ORDER_TYPE::LIMIT,700.,0.015);
+
+        try{
+
+            auto str = api.close_all_spot_orders("VETBUSD");
+            iostreams::array_source as(&str[0],str.size());
+            iostreams::stream<iostreams::array_source> is(as);
+            json_parser::read_json(is,res);
+            
+            try{
+                bool tmp = true;
+                for(auto& [k,n] : res.get_child(""))
+                {
+                    tmp &= !static_cast<bool>(n.get<std::string>("status").compare("CANCELED"));
+                }
+                b = tmp;
+            }
+            catch(std::exception &e){
+                std::cerr<<e.what()<<std::endl<<str<<std::endl;
             }
         }
         catch(std::exception &e){

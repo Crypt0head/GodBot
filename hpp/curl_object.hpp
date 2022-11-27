@@ -18,6 +18,11 @@ public:
 		}
 		return ch;
 	}
+
+	static void clean_up(){
+		curl_easy_cleanup(ch);
+		ch = nullptr;
+	}
 };
 
 CURL* curl_object::ch = nullptr;
