@@ -163,6 +163,63 @@ TEST_CASE("SPOT TRAIDING"){
 
         REQUIRE(b);
     }
+
+    SECTION("OPEN OCO SPOT ORDER"){
+        std::string key = cfg.get<std::string>("public_key");
+        std::string sec = cfg.get<std::string>("secret_key");
+
+        binance_api api(key,sec);
+        ptree_t res;
+
+        try{
+                auto str = api.open_oco_spot_order("VETBUSD",ORDER_SIDE::BUY,700.,0.015,0.021,0.0198);
+
+                iostreams::array_source as(&str[0],str.size());
+                iostreams::stream<iostreams::array_source> is(as);
+                json_parser::read_json(is,res);
+                
+                try{
+                    orderId = res.get<ulong>("orderListId");
+                    b = true;
+                }
+                catch(std::exception &e){
+                    std::cerr<<e.what()<<std::endl<<str<<std::endl;
+                }
+            }
+            catch(std::exception &e){
+                std::cerr<<e.what()<<std::endl;
+        }
+
+        REQUIRE(b);
+    }
+
+    SECTION("CANCEL OCO SPOT ORDER"){
+        std::string key = cfg.get<std::string>("public_key");
+        std::string sec = cfg.get<std::string>("secret_key");
+
+        binance_api api(key,sec);
+        ptree_t res;
+
+        try{
+                auto str = api.close_oco_spot_order("VETBUSD",orderId);
+
+                iostreams::array_source as(&str[0],str.size());
+                iostreams::stream<iostreams::array_source> is(as);
+                json_parser::read_json(is,res);
+                
+                try{
+                    b = !static_cast<bool>(res.get<std::string>("listOrderStatus").compare("ALL_DONE"));
+                }
+                catch(std::exception &e){
+                    std::cerr<<e.what()<<std::endl<<str<<std::endl;
+                }
+            }
+            catch(std::exception &e){
+                std::cerr<<e.what()<<std::endl;
+        }
+
+        REQUIRE(b);
+    }
 };
 
 TEST_CASE("MARKET DATA"){
