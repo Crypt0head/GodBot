@@ -5,14 +5,28 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/iostreams/stream.hpp>
 
 #include "hmac_sha256.hpp"
 #include "connection.hpp"
 
 #define BINANCE_API_CONFIG_FILE "../cfg/binance_api.json"
 
+namespace iostreams = boost::iostreams;
+namespace json_parser = boost::property_tree::json_parser;
+
 using ptree_t = boost::property_tree::ptree;
+
+ptree_t string_to_ptree(const std::string& str){
+		ptree_t res;
+	    iostreams::array_source as(&str[0],str.size());
+        iostreams::stream<iostreams::array_source> is(as);
+        json_parser::read_json(is, res);
+		
+		return res;
+}
 
 enum class ORDER_SIDE{
 	BUY,
