@@ -5,14 +5,28 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/iostreams/stream.hpp>
 
 #include "hmac_sha256.hpp"
 #include "connection.hpp"
 
 #define BINANCE_API_CONFIG_FILE "../cfg/binance_api.json"
 
+namespace iostreams = boost::iostreams;
+namespace json_parser = boost::property_tree::json_parser;
+
 using ptree_t = boost::property_tree::ptree;
+
+ptree_t string_to_ptree(const std::string& str){
+		ptree_t res;
+	    iostreams::array_source as(&str[0],str.size());
+        iostreams::stream<iostreams::array_source> is(as);
+        json_parser::read_json(is, res);
+		
+		return res;
+}
 
 enum class ORDER_SIDE{
 	BUY,
@@ -135,6 +149,32 @@ public:
 		std::string endpoint = "/ticker/price";
 		std::string params = "symbol=" + symbol;
 		return call(endpoint,params,http::REQTYPE::GET);
+	}
+
+	/**
+		@brief Open OCO order on given symbol
+		@param symbol	- currancy symbol
+		@param side		- buy/sell
+		@param type		- order type (LIMIT, MARKET. ...)
+		@param quantity	- quantity coins to buy/sell
+		@param price	- order price
+		@param stop_price - stop price trigger
+		@param limit_price - price of limit order
+	*/
+	json_data open_oco_spot_order(const std::string& symbol,const ORDER_SIDE& side, const double& quantity, const double& price, const double& stop_price, const double limit_price, const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC){
+		std::string endpoint = "/order/oco";
+		std::string params = "symbol=" + symbol + "&side=" + order_side_.at(side) 
+							+ "&quantity=" + std::to_string(quantity) 
+							+ "&price=" + std::to_string(price) + "&stopPrice=" + std::to_string(stop_price) 
+							+ "&stopLimitPrice=" + std::to_string(limit_price) + "&stopLimitTimeInForce="  + time_in_force_.at(tif);
+		return call(endpoint,params,http::REQTYPE::POST, SECURITY_TYPE::SIGNED);
+	}
+
+	json_data close_oco_spot_order(const std::string& symbol, const ulong& orderListId)
+	{
+		std::string endpoint = "/orderList";
+		std::string params = "symbol=" + symbol + "&orderListId=" + std::to_string(orderListId);
+		return call(endpoint,params,http::REQTYPE::DELETE, SECURITY_TYPE::SIGNED);
 	}
 
 	std::string build(std::vector<std::string> params_) {
