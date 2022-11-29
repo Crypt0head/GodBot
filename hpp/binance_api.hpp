@@ -116,11 +116,23 @@ public:
 		@param price	- order price
 		@param tif		- sets order expiration rule
 	*/
-	json_data open_spot_order(const std::string& symbol,const ORDER_SIDE& side, const ORDER_TYPE& type, const double& quantity, const double& price, const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC){
+	json_data open_spot_order(const std::string& symbol,const ORDER_SIDE& side, const ORDER_TYPE& type, const double& quantity, const double& price, const double& stopprice = 0., const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC){
 		std::string endpoint = "/order";
 		std::string params = "symbol=" + symbol + "&side=" + order_side_.at(side) 
 							+ "&type=" + order_type_.at(type) + "&quantity=" + std::to_string(quantity) 
 							+ "&price=" + std::to_string(price) + "&timeInForce=" + time_in_force_.at(tif);
+		if(type == ORDER_TYPE::STOP_LOSS || type == ORDER_TYPE::STOP_LOSS_LIMIT || 
+			type == ORDER_TYPE::TAKE_PROFIT || type == ORDER_TYPE::TAKE_PROFIT_LIMIT){
+			params += "&stopPrice=" + std::to_string(stopprice);
+		}
+		return call(endpoint,params,http::REQTYPE::POST, SECURITY_TYPE::SIGNED);
+	}
+
+	json_data open_stoploss_spot_order(const std::string& symbol,const ORDER_SIDE& side, const double& quantity, const double& price, const double& stopprice,const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC){
+		std::string endpoint = "/order";
+		std::string params = "symbol=" + symbol + "&side=" + order_side_.at(side) 
+							+ "&type=" + order_type_.at(ORDER_TYPE::STOP_LOSS_LIMIT) + "&quantity=" + std::to_string(quantity) 
+							+ "&price=" + std::to_string(price) + "&stopPrice=" + std::to_string(stopprice) + "&timeInForce=" + time_in_force_.at(tif);
 		return call(endpoint,params,http::REQTYPE::POST, SECURITY_TYPE::SIGNED);
 	}
 
