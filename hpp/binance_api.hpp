@@ -28,6 +28,101 @@ ptree_t string_to_ptree(const std::string& str){
 		return res;
 }
 
+class Kline{
+private:
+	ulong open_time_;
+	double open_price_;
+	double high_price_;
+	double low_price_;
+	double close_price_;
+	double volume_;
+	double quote_volume_;
+	ulong trades_num_;
+	double taker_base_volume_;
+	double taker_quote_volume_;
+
+public:
+	Kline() = delete;
+	Kline(const ulong& ot,const double& op,const double& hp,const double& lp,const double& cp,const double& v,
+			const double& qv,const ulong& tn, const double& tbv, const double& tqv) : open_time_(ot),
+																					open_price_(op),
+																					high_price_(hp),
+																					low_price_(lp),
+																					close_price_(cp),
+																					volume_(v),
+																					quote_volume_(qv),
+																					trades_num_(tn),
+																					taker_base_volume_(tbv), 
+																					taker_quote_volume_(tqv){
+	}
+
+	Kline(const std::string& str)
+	{
+		parse_str(str);
+	}
+
+	const Kline* operator=(const Kline& val){
+		open_time_ 			= val.open_time_;
+		open_price_ 		= val.open_price_;
+		high_price_ 		= val.high_price_;
+		low_price_ 			= val.low_price_;
+		close_price_ 		= val.close_price_;
+		volume_ 			= val.volume_;
+		quote_volume_ 		= val.quote_volume_;
+		trades_num_ 		= val.trades_num_;
+		taker_base_volume_ 	= val.taker_base_volume_;
+		taker_quote_volume_ = val.taker_quote_volume_;
+
+		return this;
+	}
+
+	const bool operator==(const Kline& val){
+		if(
+			open_time_ 			== val.open_time_ &&
+			open_price_ 		== val.open_price_ &&
+			high_price_ 		== val.high_price_ &&
+			low_price_ 			== val.low_price_ &&
+			close_price_ 		== val.close_price_ &&
+			volume_ 			== val.volume_ &&
+			quote_volume_ 		== val.quote_volume_ &&
+			trades_num_ 		== val.trades_num_ &&
+			taker_base_volume_ 	== val.taker_base_volume_ &&
+			taker_quote_volume_ == val.taker_quote_volume_
+		) 
+			return true;
+
+		return false;
+	}
+
+	int parse_str(const std::string& str){
+		ptree_t pt = string_to_ptree(str);
+
+		auto n = pt.get_child(".");
+		auto&& it = n.begin();
+
+		try{
+
+			open_time_ 			= (*it++).second.get<ulong>("");
+			open_price_ 		= (*it++).second.get<double>("");
+			high_price_ 		= (*it++).second.get<double>("");
+			low_price_ 			= (*it++).second.get<double>("");
+			close_price_ 		= (*it++).second.get<double>("");
+			volume_ 			= (*it++).second.get<double>("");
+			quote_volume_ 		= (*it++).second.get<double>("");
+			// trades_num_ 		= (*it++).second.get<ulong>("");
+			// taker_base_volume_ 	= (*it++).second.get<double>("");
+			// taker_quote_volume_ = (*it++).second.get<double>("");
+
+		}catch(const std::exception& e){
+			std::cerr<<e.what()<<std::end;
+		}
+
+		return 0;
+	}
+
+	~Kline(){};
+};
+
 enum class ORDER_SIDE{
 	BUY,
 	SELL
@@ -55,6 +150,25 @@ enum class SECURITY_TYPE{
 	NONE
 };
 
+enum class INTERVAL{
+	s1,
+	m1,
+	m3,
+	m5,
+	m15,
+	m30,
+	h1,
+	h2,
+	h4,
+	h6,
+	h8,
+	h12,
+	d1,
+	d3,
+	w1,
+	M1
+};
+
 class binance_api {
 private:
 	std::chrono::milliseconds timestamp_;
@@ -67,6 +181,7 @@ private:
 	static const std::map<ORDER_SIDE, std::string> order_side_;
 	static const std::map<ORDER_TYPE, std::string> order_type_;
 	static const std::map<TIME_IN_FORCE, std::string> time_in_force_;
+	static const std::map<INTERVAL, std::string> time_intervals_;
 
 
 public:
@@ -163,6 +278,16 @@ public:
 		return call(endpoint,params,http::REQTYPE::GET);
 	}
 
+	json_data get_kline(const std::string& symbol,const INTERVAL& i, const ulong& starttime= 0, const ulong& endtime= 0, const int32_t& limit = 1){
+		std::string endpoint = "/klines";
+		std::string params = "symbol=" + symbol + "&interval=" + time_intervals_.at(INTERVAL::m1) + "&limit=" +std::to_string(limit);
+		if(starttime!=0)
+		{
+			params += "&startTime=" + std::to_string(starttime);	
+		}
+		return call(endpoint,params,http::REQTYPE::GET);
+	}
+
 	/**
 		@brief Open OCO order on given symbol
 		@param symbol	- currancy symbol
@@ -218,4 +343,8 @@ const std::map<ORDER_TYPE, std::string> binance_api::order_type_ = std::map<ORDE
  	{ORDER_TYPE::STOP_LOSS, "STOP_LOSS_LIMIT"},{ORDER_TYPE::TAKE_PROFIT, "TAKE_PROFIT"},
 	{ORDER_TYPE::TAKE_PROFIT_LIMIT, "TAKE_PROFIT_LIMIT"},{ORDER_TYPE::LIMIT_MAKER, "LIMIT_MAKER"}});
 const std::map<TIME_IN_FORCE, std::string> binance_api::time_in_force_ = std::map<TIME_IN_FORCE, std::string>({
-	{TIME_IN_FORCE::GTC, "GTC"},{TIME_IN_FORCE::IOC, "IOC"},{TIME_IN_FORCE::FOK, "FOK"}});											
+	{TIME_IN_FORCE::GTC, "GTC"},{TIME_IN_FORCE::IOC, "IOC"},{TIME_IN_FORCE::FOK, "FOK"}});	
+const std::map<INTERVAL, std::string> binance_api::time_intervals_ = std::map<INTERVAL, std::string>({
+	{INTERVAL::s1, "1s"},{INTERVAL::m1, "1m"},{INTERVAL::m3, "3m"},{INTERVAL::m5, "5m"},{INTERVAL::m15, "15m"},{INTERVAL::m30, "30m"},
+	{INTERVAL::h1, "1h"},{INTERVAL::h2, "2h"},{INTERVAL::h4, "4h"},{INTERVAL::h6, "6h"},{INTERVAL::h8, "8h"},{INTERVAL::h12, "12h"},
+	{INTERVAL::d1, "1d"},{INTERVAL::d3, "3d"},{INTERVAL::w1, "1w"},{INTERVAL::M1, "1M"}});
