@@ -23,7 +23,7 @@
 using ptree_t = boost::property_tree::ptree;
 
 struct LogData{
-    double latest_price = 0;
+    double last_price = 0;
     double balance = 0;
     double coins = 0;
     double old_balance = 0;
@@ -32,7 +32,7 @@ struct LogData{
     double ema99 = 0;
 
     void set(const double& lp,const double& b, const double& c, const double& ob, const double& e7, const double& e25, const double& e99){
-        latest_price = lp;
+        last_price = lp;
         balance = b,
         coins = c;
         old_balance = ob;
@@ -68,13 +68,13 @@ void write_log(std::ostream& os, LogData& data, ORDER_SIDE side = ORDER_SIDE::NO
         log.put("status", "IDLE");    
     }
 
-    strs<<data.latest_price;
-    log.put("latest_price", strs.str()); strs.str("");
+    strs<<data.last_price;
+    log.put("last_price", strs.str()); strs.str("");
     strs<<data.balance;
     log.put("balance", strs.str()); strs.str("");
     strs<<data.coins;
     log.put("coins", strs.str()); strs.str("");
-    strs<<data.coins*data.latest_price;
+    strs<<data.coins*data.last_price;
     log.put("approximated_price", strs.str()); strs.str("");
     strs<<data.old_balance;
     log.put("old_balance", strs.str()); strs.str("");
@@ -93,9 +93,6 @@ void write_log(std::ostream& os, LogData& data, ORDER_SIDE side = ORDER_SIDE::NO
     catch(const std::exception& e){
         std::cerr<<e.what()<<std::endl;
     }
-
-    os.precision(8); os.fixed;
-    std::cout.precision(8); std::cout.fixed;
 
     if(json_parser::verify_json(root,0)){
          json_parser::write_json(os,root);
@@ -156,20 +153,20 @@ int main(int argc, char** argv){
     bool in_order = false;
     bool idle = true;
     auto old_balance = balance;
-    double latest_price = 0.;
+    double last_price = 0.;
 
     while(true)
     {
         auto curtime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
         
         if((curtime-lasttime).count() >= 60){
-            latest_price = Kline(api.get_kline("LUNCUSDT",INTERVAL::m1,0,0,1)).get_close_price();
+            last_price = Kline(api.get_kline("LUNCUSDT",INTERVAL::m1,0,0,1)).get_close_price();
             
             ema7_old = ema7;
-            ema7=EMA(7,vec,ema7);
+            ema7=EMA(7,last_price,ema7);
             ema25_old = ema25;
-            ema25=EMA(25,vec,ema25);
-            ema99=EMA(99,vec,ema99);
+            ema25=EMA(25,last_price,ema25);
+            ema99=EMA(99,last_price,ema99);
 
             std::time_t time = ::time(nullptr);
             auto ltm = std::localtime(&time);
@@ -177,22 +174,22 @@ int main(int argc, char** argv){
             if(!in_order)
             {
                 if(ema99>ema25){
-                    if(ema25>ema7 && (ema99-ema25)/(ema25-ema7) >= 2.5 && ema7 > ema7_old && ema25>ema25_old){
+                    if(ema25>ema7 && (ema99-ema25)/(ema25-ema7) >= 2.5 && ema7 > ema7_old && ema25>=ema25_old){
                         idletime = std::chrono::seconds(0);
                         in_order = true;
-                        coins = (float)(balance/latest_price*0.999);
+                        coins = (float)(balance/last_price*0.999);
                         balance = 0;
-                        log_data.set(latest_price, balance, coins, old_balance, ema7, ema25, ema99);
+                        log_data.set(last_price, balance, coins, old_balance, ema7, ema25, ema99);
                         write_log(logs_out,log_data,ORDER_SIDE::BUY);
                     }
                 }
             }
-            else if(coins*latest_price>=old_balance*1.0031){
+            else if(coins*last_price>=old_balance*1.0031){
                         idletime = std::chrono::seconds(0);
                         in_order = false;
-                        balance = coins*latest_price*0.999;
+                        balance = coins*last_price*0.999;
                         coins = 0;
-                        log_data.set(latest_price, balance, coins, old_balance, ema7, ema25, ema99);
+                        log_data.set(last_price, balance, coins, old_balance, ema7, ema25, ema99);
                         old_balance = balance;
                         write_log(logs_out,log_data,ORDER_SIDE::SELL);
             }
@@ -201,7 +198,7 @@ int main(int argc, char** argv){
 
         if((curtime-idletime).count() >= 60)
         {
-            log_data.set(latest_price, balance, coins, old_balance, ema7, ema25, ema99);
+            log_data.set(last_price, balance, coins, old_balance, ema7, ema25, ema99);
             write_log(logs_out,log_data);
             idletime = curtime;
         }
