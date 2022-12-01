@@ -41,6 +41,41 @@ TEST_CASE("General Tests"){
     catch(boost::wrapexcept<json_parser::json_parser_error> &err){
         std::cerr<<err.what()<<'\n';
     }
+
+    SECTION("Trade log"){
+        ptree_t root, logs, log;
+        std::time_t time = ::time(nullptr);
+        auto ltm = std::localtime(&time);
+        auto log_ts = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch()).count();
+
+        for(int i=0;i<2;i++){
+            auto timestamp = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch()).count();
+            log.put("timestamp", timestamp);
+            log.put("local_time", std::put_time(ltm, "%c %Z"));
+            log.put("latest_price", 0.000164088);
+            log.put("balance", 1003.92);
+            log.put("coins", 0);
+            log.put("old_balance", 1000);
+            log.put("ema(7)", 0.000164088);
+            log.put("ema(25)", 0.000164273);
+            log.put("ema(99)", 0.000164815);
+            
+            logs.push_back(std::make_pair("",log));
+        }
+
+        try{
+            root.push_back(std::make_pair(std::to_string(log_ts),logs));
+            b = true;
+        }
+        catch(const std::exception& e){
+            std::cerr<<e.what()<<std::endl;
+        }
+
+        // if(json_parser::verify_json(root,0))
+        //     json_parser::write_json(std::cout,root);
+
+        REQUIRE(b);
+    }
 }
 
 TEST_CASE("MARKET DATA"){

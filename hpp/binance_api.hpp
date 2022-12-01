@@ -16,6 +16,7 @@
 
 namespace iostreams = boost::iostreams;
 namespace json_parser = boost::property_tree::json_parser;
+namespace chrono = std::chrono;
 
 using ptree_t = boost::property_tree::ptree;
 
@@ -152,7 +153,8 @@ public:
 
 enum class ORDER_SIDE{
 	BUY,
-	SELL
+	SELL,
+	NONE
 };
 
 enum class TIME_IN_FORCE{
