@@ -53,6 +53,19 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "Release Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/bin/App.out",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "GodBot reslease",
+            "setupCommands": []
         }
 
     ]

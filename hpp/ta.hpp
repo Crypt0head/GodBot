@@ -3,23 +3,26 @@
 #include <iostream>
 #include <vector>
 
+#include "binance_api.hpp"
+
 #define TI_REAL double
 
-int ti_ema(int size, TI_REAL const *inputs, int const options, TI_REAL *outputs) {
-    const TI_REAL *input = &inputs[0];
-    const int period = options;
-    TI_REAL *output = &outputs[0];
-    if (period < 1) return -1;
-    // if (size <= ti_ema_start(options)) return 0;
-    const TI_REAL per = 2 / ((TI_REAL)period + 1);
-    TI_REAL val = input[0];
-    *output++ = val;
-    int i;
-    for (i = 1; i < size; ++i) {
-        val = (input[i]-val) * per + val;
-        *output++ = val;
+double EMA(const int& n,const std::vector<Kline>& data,const double& ema){
+    const double a=2/(double)(n+1);
+    auto res = a*data.back().get_close_price()+(1-a)*ema;
+    return res;
+}
+
+double EMA(const int& n, std::vector<Kline>& data, const int& pos = 0){
+    if(pos != 0)
+    {
+        const double a=2/(double)(n+1);
+        auto ema = EMA(n,data,pos-1);
+        auto res = a*data[pos].get_close_price()+(1-a)*ema;
+        return res;
     }
-    return 0;
+
+    return data[0].get_close_price();
 }
 
 double EMA(const int& n, const std::vector<double>& data, const int& pos = 0){

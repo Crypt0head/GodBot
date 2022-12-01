@@ -61,6 +61,26 @@ public:
 		parse_str(str);
 	}
 
+	Kline(const ptree_t& pt){
+		try{
+			auto&& it = pt.begin();
+
+			open_time_ 			= (*it++).second.get<ulong>("");
+			open_price_ 		= (*it++).second.get<double>("");
+			high_price_ 		= (*it++).second.get<double>("");
+			low_price_ 			= (*it++).second.get<double>("");
+			close_price_ 		= (*it++).second.get<double>("");
+			volume_ 			= (*it++).second.get<double>("");
+			quote_volume_ 		= (*it++).second.get<double>("");
+			// trades_num_ 		= (*it++).second.get<ulong>("");
+			// taker_base_volume_ 	= (*it++).second.get<double>("");
+			// taker_quote_volume_ = (*it++).second.get<double>("");
+
+		}catch(const std::exception& e){
+			std::cerr<<e.what()<<std::endl;
+		}
+	}
+
 	const Kline* operator=(const Kline& val){
 		open_time_ 			= val.open_time_;
 		open_price_ 		= val.open_price_;
@@ -97,10 +117,9 @@ public:
 	int parse_str(const std::string& str){
 		ptree_t pt = string_to_ptree(str);
 
-		auto n = pt.get_child(".");
-		auto&& it = n.begin();
-
 		try{
+			auto n = pt.get_child(".");
+			auto&& it = n.begin();
 
 			open_time_ 			= (*it++).second.get<ulong>("");
 			open_price_ 		= (*it++).second.get<double>("");
@@ -114,10 +133,18 @@ public:
 			// taker_quote_volume_ = (*it++).second.get<double>("");
 
 		}catch(const std::exception& e){
-			std::cerr<<e.what()<<std::end;
+			std::cerr<<e.what()<<std::endl;
 		}
 
 		return 0;
+	}
+
+	const double& get_close_price() const{
+		return close_price_;
+	}
+
+	const double& get_opentime() const{
+		return open_time_;
 	}
 
 	~Kline(){};
@@ -218,7 +245,17 @@ public:
 			}
 		}
 
-		connection_.request(url_ + method, http::post(), params, headers, rtype);
+		do{
+			try{
+				connection_.request(url_ + method, http::post(), params, headers, rtype);
+				break;
+			}catch(const std::exception& e)
+			{
+				std::cerr<<e.what()<<std::endl;
+				sleep(10);
+			}
+		}while(true);
+
 		return connection_.get_response();
 	}
 
@@ -275,6 +312,12 @@ public:
 	json_data get_symbol_price(const std::string& symbol){
 		std::string endpoint = "/ticker/price";
 		std::string params = "symbol=" + symbol;
+		return call(endpoint,params,http::REQTYPE::GET);
+	}
+
+	json_data get_server_time(){
+		std::string endpoint = "/time";
+		std::string params = "";
 		return call(endpoint,params,http::REQTYPE::GET);
 	}
 
