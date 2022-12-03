@@ -6,6 +6,7 @@
     "take_profit_percentage" : "0.24",
     "stop_loss_percentage" : "5",
 
-    "log_time" : "10"
-
+    "logs_folder" : "../logs",
+    "log_time" : "10",
+    "log_to_std": "1"
 }

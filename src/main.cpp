@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <thread>
+#include <filesystem>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -11,13 +12,13 @@
 #include "../hpp/binance_api.hpp"
 #include "../hpp/ta.hpp"
 
-#define VERSION "0.1.0"
+#define VERSION "0.1.1"
 
 #define DEFAULT_CONFIG_FILE "/cfg/config.json" 
 #define DEFAULT_SECRETS_FILE "/cfg/secrets.json" 
 #define DEFAULT_API_FILE "/cfg/binance_api.json" 
 
-#define LOGS_FOLDER "../logs/"
+#define DEFAULT_LOGS_FOLDER "logs"
 
 #define sec 1000
 #define min sec*60
@@ -27,6 +28,7 @@
 #define month waek*4
 
 namespace opt = boost::program_options;
+namespace filesystem = std::filesystem;
 
 using ptree_t = boost::property_tree::ptree;
 
@@ -93,19 +95,19 @@ void write_log(std::ostream& os, LogData& data, ORDER_SIDE side = ORDER_SIDE::NO
     strs<<data.ema99;
     log.put("ema(99)", strs.str()); strs.str("");
     
-    logs.push_back(std::make_pair("",log));
+    logs.push_back(std::make_pair("", log));
 
     try{
-        root.push_back(std::make_pair(std::to_string(log_ts),log));
+        root.push_back(std::make_pair(std::to_string(log_ts), log));
     }
     catch(const std::exception& e){
         std::cerr<<e.what()<<std::endl;
     }
 
-    if(json_parser::verify_json(root,0)){
-         json_parser::write_json(os,root);
+    if(json_parser::verify_json(root, 0)){
+         json_parser::write_json(os, root);
          if(std_out) 
-            json_parser::write_json(std::cout,root);
+            json_parser::write_json(std::cout, root);
     }
     else{
         throw json_parser::json_parser_error("Can't write ptree root to json-file: ", __FILE__, __LINE__);
@@ -164,9 +166,10 @@ int main(int argc, char** argv){
         return 1;
     }
 
-    std::string pub_key, sec_key, symbol;
+    std::string pub_key, sec_key, symbol, logs_folder;
     double take_profit, stop_loss;
     ulong log_time;
+    bool log_to_std;
     INTERVAL timerframe;
 
     try{
@@ -185,7 +188,9 @@ int main(int argc, char** argv){
         symbol = config.get<std::string>("symbol");
         take_profit = 1 + config.get<double>("take_profit_percentage")/100;
         stop_loss = 1 - config.get<double>("stop_loss_percentage")/100;
-        log_time = config.get<ulong>("log_time");;
+        logs_folder = config.count("logs_folder") ? config.get<std::string>("logs_folder") : DEFAULT_LOGS_FOLDER;
+        log_time = config.get<ulong>("log_time");
+        log_to_std = config.count("log_to_std") ? config.get<bool>("log_to_std") : false;
     }
     catch(std::exception& err){
         std::cerr<<err.what()<<'\n';
@@ -203,7 +208,7 @@ int main(int argc, char** argv){
     std::vector<Kline> vec;
     
     LogData log_data;
-    json_data r = api.get_kline(symbol,timerframe,0,0,1000);
+    json_data r = api.get_kline(symbol, timerframe, 0, 0, 1000);
     auto pt = string_to_ptree(r);
 
     for(auto i : pt.get_child(""))
@@ -221,65 +226,94 @@ int main(int argc, char** argv){
     double last_price = 0.;
     double min_price = 0.;
 
-    auto last_kline = Kline(api.get_kline(symbol,timerframe,0,0,1));
+    auto last_kline = Kline(api.get_kline(symbol, timerframe, 0, 0, 1));
 
-    std::string log_file_out = LOGS_FOLDER + std::to_string(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch()).count())+"_log.json";
-    std::ofstream logs_out(log_file_out);
-    logs_out<<"[\n"; // TODO: Fix log json-file write
+    if(!filesystem::is_directory(logs_folder))
+        filesystem::create_directory(logs_folder);
+
+    std::string log_file_out;
 
     auto lasttime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
     auto idletime = lasttime;
 
-    while(true)
-    {
-        auto curtime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
-        
-        if((curtime-lasttime).count() >= 1){
-            last_kline = Kline(api.get_kline(symbol,timerframe,0,0,1));
-            last_price = last_kline.get_close_price();
-            min_price = last_kline.get_min_price();
-            
-            ema7_old = ema7;
-            ema7=EMA(7,last_price,ema7);
-            ema25_old = ema25;
-            ema25=EMA(25,last_price,ema25);
-            ema99=EMA(99,last_price,ema99);
+    bool is_over = false;
 
-            if(!in_order)
-            {
-                if(ema99>ema25){
-                    if(ema25>ema7 && (ema99-ema25)/(ema25-ema7) >= 2.5 && ema7 > ema7_old && ema25>=ema25_old){
-                        idletime = std::chrono::seconds(0);
-                        in_order = true;
-                        coins = balance/min_price*0.999;
-                        balance = 0;
-                        log_data.set(min_price, balance, coins, old_balance, ema7, ema25, ema99);
-                        write_log(logs_out,log_data,ORDER_SIDE::BUY);
+    std::thread bot_thread([&](){
+
+        std::cout<<"> Bot started traiding on "<<symbol<<"\n";
+        log_file_out = logs_folder + '/' + std::to_string(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch()).count())+"_log.json";
+        std::ofstream logs_out(log_file_out);
+        logs_out<<"[\n"; // TODO: Fix log json-file write
+        while(!is_over)
+        {
+            auto curtime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
+            
+            if((curtime-lasttime).count() >= 1){
+                last_kline = Kline(api.get_kline(symbol, timerframe, 0, 0, 1));
+                last_price = last_kline.get_close_price();
+                min_price = last_kline.get_min_price();
+                
+                ema7_old = ema7;
+                ema7=EMA(7, last_price, ema7);
+                ema25_old = ema25;
+                ema25=EMA(25, last_price, ema25);
+                ema99=EMA(99, last_price, ema99);
+
+                if(!in_order)
+                {
+                    if(ema99>ema25){
+                        if(ema25>ema7 && (ema99-ema25)/(ema25-ema7) >= 2.5 && ema7 > ema7_old && ema25>=ema25_old){
+                            idletime = std::chrono::seconds(0);
+                            in_order = true;
+                            coins = balance/min_price*0.999;
+                            balance = 0;
+                            log_data.set(min_price, balance, coins, old_balance, ema7, ema25, ema99);
+                            write_log(logs_out, log_data, ORDER_SIDE::BUY, log_to_std);
+                        }
                     }
                 }
+                else if(coins*last_price>=old_balance*take_profit || coins*last_price<old_balance*stop_loss){
+                            idletime = std::chrono::seconds(0);
+                            in_order = false;
+                            balance = coins*last_price*0.999;
+                            coins = 0;
+                            log_data.set(last_price, balance, coins, old_balance, ema7, ema25, ema99);
+                            old_balance = balance;
+                            write_log(logs_out, log_data, ORDER_SIDE::SELL, log_to_std);
+                }
+                lasttime = curtime;
             }
-            else if(coins*last_price>=old_balance*take_profit || coins*last_price<old_balance*stop_loss){
-                        idletime = std::chrono::seconds(0);
-                        in_order = false;
-                        balance = coins*last_price*0.999;
-                        coins = 0;
-                        log_data.set(last_price, balance, coins, old_balance, ema7, ema25, ema99);
-                        old_balance = balance;
-                        write_log(logs_out,log_data,ORDER_SIDE::SELL);
+
+            if((curtime-idletime).count() >= log_time)
+            {
+                log_data.set(last_price, balance, coins, old_balance, ema7, ema25, ema99);
+                write_log(logs_out, log_data, ORDER_SIDE::NONE, log_to_std);
+                idletime = curtime;
             }
-            lasttime = curtime;
+        }
+        std::cout<<"> Bot finished traiding on "<<symbol<<std::endl;
+        logs_out<<"\n]"; // TODO: Fix log json-file write
+        logs_out.close();
+    });
+
+    char* cmd = new char[512];
+    while(true)
+    {
+        std::cout<<"> ";
+        std::cin.getline(cmd,512);
+
+        if(!strcmp(cmd,"exit")){
+            is_over = true;
+            bot_thread.join();
+            break;
         }
 
-        if((curtime-idletime).count() >= log_time)
-        {
-            log_data.set(last_price, balance, coins, old_balance, ema7, ema25, ema99);
-            write_log(logs_out,log_data);
-            idletime = curtime;
+        if(!strcmp(cmd,"logs")){
+            log_to_std = !log_to_std;
         }
+
     }
-    
-    logs_out<<"\n]"; // TODO: Fix log json-file write
-    logs_out.close();
 
+    delete[] cmd;
     return 0;
 }
