@@ -95,7 +95,14 @@ namespace http {
 				curl_easy_setopt(curl_object::get_instance(), CURLOPT_HTTPHEADER, list);
 			}
 
-			CURLcode rescode = curl_easy_perform(curl_object::get_instance());
+			CURLcode rescode;
+
+			try{
+				rescode = curl_easy_perform(curl_object::get_instance());
+			}
+			catch(std::exception& e){
+				std::cout<<e.what()<<std::endl;
+			}
 
 			if (rescode != CURLE_OK) {
 				std::string msg{ "!> curl_easy_perform failed with error: " };
