@@ -12,7 +12,7 @@
 #include "../hpp/binance_api.hpp"
 #include "../hpp/ta.hpp"
 
-#define VERSION "0.1.1"
+#define VERSION "0.1.2"
 
 #define DEFAULT_CONFIG_FILE "/cfg/config.json" 
 #define DEFAULT_SECRETS_FILE "/cfg/secrets.json" 
@@ -228,8 +228,8 @@ int main(int argc, char** argv){
 
     auto last_kline = Kline(api.get_kline(symbol, timerframe, 0, 0, 1));
 
-    if(!filesystem::is_directory(logs_folder))
-        filesystem::create_directory(logs_folder);
+    if(!std::filesystem::is_directory(logs_folder))
+        std::filesystem::create_directory(logs_folder);
 
     std::string log_file_out;
 
@@ -253,11 +253,13 @@ int main(int argc, char** argv){
                 last_price = last_kline.get_close_price();
                 min_price = last_kline.get_min_price();
                 
-                ema7_old = ema7;
-                ema7=EMA(7, last_price, ema7);
-                ema25_old = ema25;
-                ema25=EMA(25, last_price, ema25);
-                ema99=EMA(99, last_price, ema99);
+                if((curtime-lasttime).count() >= log_time){
+                    ema7_old = ema7;
+                    ema7=EMA(7, last_price, ema7);
+                    ema25_old = ema25;
+                    ema25=EMA(25, last_price, ema25);
+                    ema99=EMA(99, last_price, ema99);
+                }
 
                 if(!in_order)
                 {
