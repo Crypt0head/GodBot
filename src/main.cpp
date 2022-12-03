@@ -11,12 +11,13 @@
 
 #include "../hpp/binance_api.hpp"
 #include "../hpp/ta.hpp"
+#include "../hpp/GodBot.hpp"
 
-#define VERSION "0.1.2"
+#define VERSION "0.2.0"
 
-#define DEFAULT_CONFIG_FILE "/cfg/config.json" 
-#define DEFAULT_SECRETS_FILE "/cfg/secrets.json" 
-#define DEFAULT_API_FILE "/cfg/binance_api.json" 
+#define DEFAULT_CONFIG_FILE "cfg/config.json" 
+#define DEFAULT_SECRETS_FILE "cfg/secrets.json" 
+#define DEFAULT_API_FILE "cfg/binance_api.json" 
 
 #define DEFAULT_LOGS_FOLDER "logs"
 
@@ -162,11 +163,10 @@ int main(int argc, char** argv){
 
     ptree_t config;
     if(options_handler(&description, vm, &config)){
-        std::cout<<"> ERROR: Need json formated config file to continue"<<std::endl;
         return 1;
     }
 
-    std::string pub_key, sec_key, symbol, logs_folder;
+    std::string pub_key, sec_key, symbol, logs_folder, api_config_file;
     double take_profit, stop_loss;
     ulong log_time;
     bool log_to_std;
@@ -182,6 +182,7 @@ int main(int argc, char** argv){
         json_parser::read_json(config.get<std::string>("secrets_file") ,tmp);
         append(&tmp, &config);
 
+        api_config_file = config.get<std::string>("api_config_file");
         pub_key = config.get<std::string>("public_key");
         sec_key = config.get<std::string>("secret_key");
         timerframe = keybyvalue(config.get<std::string>("timeframe"));
@@ -197,7 +198,7 @@ int main(int argc, char** argv){
         return 1;
     }
 
-    binance_api api(pub_key,sec_key);
+    binance_api api(pub_key, sec_key, api_config_file);
 
     double balance = 1000.;
     double coins = 0;
@@ -237,6 +238,8 @@ int main(int argc, char** argv){
     auto idletime = lasttime;
 
     bool is_over = false;
+
+    GodBot bot1;
 
     std::thread bot_thread([&](){
 

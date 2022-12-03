@@ -12,7 +12,7 @@
 #include "hmac_sha256.hpp"
 #include "connection.hpp"
 
-#define BINANCE_API_CONFIG_FILE "../cfg/binance_api.json"
+#define BINANCE_API_CONFIG_FILE "cfg/binance_api.json"
 
 namespace iostreams = boost::iostreams;
 namespace json_parser = boost::property_tree::json_parser;
@@ -24,7 +24,12 @@ ptree_t string_to_ptree(const std::string& str){
 		ptree_t res;
 	    iostreams::array_source as(&str[0],str.size());
         iostreams::stream<iostreams::array_source> is(as);
-        json_parser::read_json(is, res);
+		try{
+        	json_parser::read_json(is, res);
+		}
+		catch(std::exception& e){
+			std::cerr<<e.what()<<std::endl;
+		}
 		
 		return res;
 }
@@ -221,15 +226,14 @@ public:
 public:
     binance_api() = delete;
 
-	binance_api(const std::string& key, const std::string& secret) : key_(key), secret_(secret){
+	binance_api(const std::string& key, const std::string& secret, const std::string& api_file = BINANCE_API_CONFIG_FILE) : key_(key), secret_(secret){
         try{
-            boost::property_tree::read_json(BINANCE_API_CONFIG_FILE, api_cfg_);
+            boost::property_tree::read_json(api_file, api_cfg_);
+			url_ = api_cfg_.get<std::string>("api_Base_url") + api_cfg_.get<std::string>("api_Version");
         }
         catch(std::exception &e){
             std::cerr<<e.what()<<std::endl;
         }
-
-		url_ = api_cfg_.get<std::string>("api_Base_url") + api_cfg_.get<std::string>("api_Version");
 		connection_ = http::connection();
 		timestamp_ = get_timestamp();
 	}	

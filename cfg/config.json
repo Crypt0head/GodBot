@@ -1,5 +1,5 @@
 {
-    "api_config_file" : "/cfg/binance_api",
+    "api_config_file" : "../cfg/binance_api.json",
     "timeframe" : "1m",
     "symbol" : "LUNCUSDT",
     "startagy" : "NONE",

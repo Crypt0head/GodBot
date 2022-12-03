@@ -1,7 +1,6 @@
 {
     "api_Name":"BINANCE_API",
     "api_Base_url":"https://api.binance.com/api",
-    "api_Method":"POST",
     "api_Version":"/v3",
     "api_Limit":"1200",
     "api_Header":"X-MBX-APIKEY"
