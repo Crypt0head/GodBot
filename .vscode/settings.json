@@ -61,6 +61,7 @@
         "typeinfo": "cpp",
         "utility": "cpp",
         "variant": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "strstream": "cpp"
     }
 }

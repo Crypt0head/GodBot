@@ -148,6 +148,10 @@ public:
 		return open_time_;
 	}
 
+	const double& get_min_price() const{
+		return open_time_ - close_price_ > 0 ? close_price_ : open_price_;
+	}
+
 	~Kline(){};
 };
 
@@ -207,6 +211,7 @@ private:
 	http::connection connection_;
     ptree_t api_cfg_;
 
+public:
 	static const std::map<ORDER_SIDE, std::string> order_side_;
 	static const std::map<ORDER_TYPE, std::string> order_type_;
 	static const std::map<TIME_IN_FORCE, std::string> time_in_force_;

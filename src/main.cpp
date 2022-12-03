@@ -1,16 +1,22 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <thread>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/program_options.hpp>
 #include <boost/exception/exception.hpp>
-#include <thread>
 
 #include "../hpp/binance_api.hpp"
 #include "../hpp/ta.hpp"
 
-#define CONFIGFILE "../cfg/secrets.json" 
+#define VERSION "0.1.0"
+
+#define DEFAULT_CONFIG_FILE "/cfg/config.json" 
+#define DEFAULT_SECRETS_FILE "/cfg/secrets.json" 
+#define DEFAULT_API_FILE "/cfg/binance_api.json" 
+
 #define LOGS_FOLDER "../logs/"
 
 #define sec 1000
@@ -19,6 +25,8 @@
 #define day hour*24
 #define weak day*7
 #define month waek*4
+
+namespace opt = boost::program_options;
 
 using ptree_t = boost::property_tree::ptree;
 
@@ -105,24 +113,84 @@ void write_log(std::ostream& os, LogData& data, ORDER_SIDE side = ORDER_SIDE::NO
     os<<",\n";
 }
 
-int main(int argc, char** argv){
-    ptree_t config;
-    std::string log_file_out = LOGS_FOLDER + std::to_string(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch()).count())+"_log.json";
-    std::ofstream logs_out(log_file_out);
-    std::string pub_key, sec_key;
-
-    logs_out<<"[\n"; // TODO: Fix log json-file write
-
-    try{ 
-        boost::property_tree::json_parser::read_json(CONFIGFILE,config);
+int options_handler(opt::options_description* desc, opt::variables_map& vm, ptree_t* options){
+    if(vm.count("help")){
+         std::cout<< *desc <<std::endl;
+         return 1;
     }
-    catch(boost::wrapexcept<boost::property_tree::json_parser_error> &err){
-        std::cerr<<err.what()<<'\n';
+    if(vm.count("version")){
+         std::cout<<"Version: "<<VERSION<<std::endl;
+         return 1;
+    }
+
+    if(vm.count("config")){
+        options->put("config_file", vm["config"].as<std::string>());
+
+    }else{
+        options->put("config_file", DEFAULT_CONFIG_FILE);
+    }
+
+    if(vm.count("secrets")){
+        options->put("secrets_file", vm["secrets"].as<std::string>());
+    }else{
+        options->put("secrets_file", DEFAULT_SECRETS_FILE);
+    }
+
+    return 0;
+}
+
+int main(int argc, char** argv){
+    opt::options_description description("All options");
+    opt::variables_map vm;
+
+    description.add_options()
+    ("config,c", opt::value<std::string>()->default_value(DEFAULT_CONFIG_FILE), "path to GodBot config file")
+    ("secrets,s", opt::value<std::string>()->default_value(DEFAULT_SECRETS_FILE), "path to secrets config file")
+    ("version,v", "print version")
+    ("help,h", "help message");
+
+    try{
+        opt::store(opt::parse_command_line(argc, argv, description), vm);
+        opt::store(opt::parse_environment(description, "GODBOT_"), vm);
+    }catch(const std::exception& e){
+        std::cout<<e.what()<<std::endl;
+        return 1;
+    }
+    opt::notify(vm);
+
+    ptree_t config;
+    if(options_handler(&description, vm, &config)){
+        std::cout<<"> ERROR: Need json formated config file to continue"<<std::endl;
         return 1;
     }
 
-    pub_key = config.get<std::string>("public_key");
-    sec_key = config.get<std::string>("secret_key");
+    std::string pub_key, sec_key, symbol;
+    double take_profit, stop_loss;
+    ulong log_time;
+    INTERVAL timerframe;
+
+    try{
+        ptree_t tmp;
+        auto append = [](ptree_t* src, ptree_t* dest){for(auto i : *src){dest->push_back(i);}};
+        auto keybyvalue = [](const std::string& value){for(auto i : binance_api::time_intervals_){if(value == i.second) return i.first; return INTERVAL::m1;}};
+
+        json_parser::read_json(config.get<std::string>("config_file") ,tmp);
+        append(&tmp, &config);
+        json_parser::read_json(config.get<std::string>("secrets_file") ,tmp);
+        append(&tmp, &config);
+
+        pub_key = config.get<std::string>("public_key");
+        sec_key = config.get<std::string>("secret_key");
+        timerframe = keybyvalue(config.get<std::string>("timeframe"));
+        symbol = config.get<std::string>("symbol");
+        take_profit = 1 + config.get<double>("take_profit_percentage")/100;
+        stop_loss = 1 - config.get<double>("stop_loss_percentage")/100;
+        log_time = config.get<ulong>("log_time");;
+    }
+    catch(std::exception& err){
+        std::cerr<<err.what()<<'\n';
+        return 1;
+    }
 
     binance_api api(pub_key,sec_key);
 
@@ -135,7 +203,7 @@ int main(int argc, char** argv){
     std::vector<Kline> vec;
     
     LogData log_data;
-    json_data r = api.get_kline("LUNCUSDT",INTERVAL::m1,0,0,1000);
+    json_data r = api.get_kline(symbol,timerframe,0,0,1000);
     auto pt = string_to_ptree(r);
 
     for(auto i : pt.get_child(""))
@@ -147,20 +215,29 @@ int main(int argc, char** argv){
     ema25 = EMA(25,vec,vec.size()-1);
     ema99 = EMA(99,vec,vec.size()-1);
 
-    auto lasttime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
-    auto idletime = lasttime;
-
     bool in_order = false;
     bool idle = true;
     auto old_balance = balance;
     double last_price = 0.;
+    double min_price = 0.;
+
+    auto last_kline = Kline(api.get_kline(symbol,timerframe,0,0,1));
+
+    std::string log_file_out = LOGS_FOLDER + std::to_string(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch()).count())+"_log.json";
+    std::ofstream logs_out(log_file_out);
+    logs_out<<"[\n"; // TODO: Fix log json-file write
+
+    auto lasttime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
+    auto idletime = lasttime;
 
     while(true)
     {
         auto curtime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
         
-        if((curtime-lasttime).count() >= 60){
-            last_price = Kline(api.get_kline("LUNCUSDT",INTERVAL::m1,0,0,1)).get_close_price();
+        if((curtime-lasttime).count() >= 1){
+            last_kline = Kline(api.get_kline(symbol,timerframe,0,0,1));
+            last_price = last_kline.get_close_price();
+            min_price = last_kline.get_min_price();
             
             ema7_old = ema7;
             ema7=EMA(7,last_price,ema7);
@@ -168,23 +245,20 @@ int main(int argc, char** argv){
             ema25=EMA(25,last_price,ema25);
             ema99=EMA(99,last_price,ema99);
 
-            std::time_t time = ::time(nullptr);
-            auto ltm = std::localtime(&time);
-
             if(!in_order)
             {
                 if(ema99>ema25){
                     if(ema25>ema7 && (ema99-ema25)/(ema25-ema7) >= 2.5 && ema7 > ema7_old && ema25>=ema25_old){
                         idletime = std::chrono::seconds(0);
                         in_order = true;
-                        coins = (float)(balance/last_price*0.999);
+                        coins = balance/min_price*0.999;
                         balance = 0;
-                        log_data.set(last_price, balance, coins, old_balance, ema7, ema25, ema99);
+                        log_data.set(min_price, balance, coins, old_balance, ema7, ema25, ema99);
                         write_log(logs_out,log_data,ORDER_SIDE::BUY);
                     }
                 }
             }
-            else if(coins*last_price>=old_balance*1.0031){
+            else if(coins*last_price>=old_balance*take_profit || coins*last_price<old_balance*stop_loss){
                         idletime = std::chrono::seconds(0);
                         in_order = false;
                         balance = coins*last_price*0.999;
@@ -196,7 +270,7 @@ int main(int argc, char** argv){
             lasttime = curtime;
         }
 
-        if((curtime-idletime).count() >= 60)
+        if((curtime-idletime).count() >= log_time)
         {
             log_data.set(last_price, balance, coins, old_balance, ema7, ema25, ema99);
             write_log(logs_out,log_data);

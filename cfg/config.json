@@ -1,0 +1,11 @@
+{
+    "api_config_file" : "/cfg/binance_api",
+    "timeframe" : "1s",
+    "symbol" : "LUNCUSDT",
+    "startagy" : "NONE",
+    "take_profit_percentage" : "0.24",
+    "stop_loss_percentage" : "5",
+
+    "log_time" : "10"
+
+}

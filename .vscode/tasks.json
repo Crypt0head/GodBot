@@ -13,7 +13,8 @@
                 "-lcurl",
                 "-lssl",
                 "-lcrypto",
-                "-lpthread"
+                "-lpthread",
+                "-lboost_program_options"
             ],
             "options": {
                 "cwd": "${fileDirname}"
@@ -39,7 +40,8 @@
                 "-lcurl",
                 "-lssl",
                 "-lcrypto",
-                "-lpthread"
+                "-lpthread",
+                "-lboost_program_options"
             ],
             "options": {
                 "cwd": "${fileDirname}"
