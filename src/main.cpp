@@ -11,7 +11,7 @@
 #include "../hpp/binance_api.hpp"
 #include "../hpp/GodBot.hpp"
 
-#define VERSION "0.4.0"
+#define VERSION "0.4.1"
 
 #define DEFAULT_CONFIG_FILE "cfg/config.json" 
 #define DEFAULT_SECRETS_FILE "cfg/secrets.json" 

@@ -108,6 +108,7 @@ void GodBot::Run(){
 
     auto lasttime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
     auto idletime = lasttime;
+    auto updatetime = lasttime;
 
     bool is_over = false;
 
@@ -125,12 +126,14 @@ void GodBot::Run(){
             last_price = last_kline.get_close_price();
             min_price = last_kline.get_min_price();
             
-            if((curtime-lasttime).count() >= time_map.at(timerframe)/sec){
+
+            if((curtime-updatetime).count() >= time_map.at(timerframe)/sec){
                 ema7_old = ema7;
                 ema7=EMA(7, last_price, ema7);
                 ema25_old = ema25;
                 ema25=EMA(25, last_price, ema25);
                 ema99=EMA(99, last_price, ema99);
+                updatetime = curtime;
             }
 
             if(!in_order)
@@ -155,7 +158,6 @@ void GodBot::Run(){
                         old_balance = balance;
                         write_log(logs_out, log_data, ORDER_SIDE::SELL, is_stdlog);
             }
-            lasttime = curtime;
         }
 
         if((curtime-idletime).count() >= log_time)
@@ -164,6 +166,8 @@ void GodBot::Run(){
             write_log(logs_out, log_data, ORDER_SIDE::NONE, is_stdlog);
             idletime = curtime;
         }
+
+        lasttime = curtime;
     }
     std::cout<<"> Bot "<<GetTag()<<" finished traiding on "<<symbol<<std::endl;
     logs_out<<"\n]"; // TODO: Fix log json-file write
