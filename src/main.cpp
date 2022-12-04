@@ -13,7 +13,7 @@
 #include "../hpp/ta.hpp"
 #include "../hpp/GodBot.hpp"
 
-#define VERSION "0.3.0"
+#define VERSION "0.3.1"
 
 #define DEFAULT_CONFIG_FILE "cfg/config.json" 
 #define DEFAULT_SECRETS_FILE "cfg/secrets.json" 
@@ -25,13 +25,18 @@
 #define min sec*60
 #define hour min*60
 #define day hour*24
-#define weak day*7
-#define month waek*4
+#define week day*7
+#define month week*4
 
 namespace opt = boost::program_options;
 namespace filesystem = std::filesystem;
 
 using ptree_t = boost::property_tree::ptree;
+
+const std::map<INTERVAL, ulong> time_map = 
+            std::map<INTERVAL, ulong>({{INTERVAL::s1, sec},{INTERVAL::m1, min},{INTERVAL::m3, min*3},{INTERVAL::m5, min*5},{INTERVAL::m15, min*15},{INTERVAL::m30, min*30},
+                                       {INTERVAL::h1, hour},{INTERVAL::h2, hour*2},{INTERVAL::h4, hour*4},{INTERVAL::h6, hour*6},{INTERVAL::h8, hour*8},{INTERVAL::h12, hour*12},
+                                        {INTERVAL::d1, day},{INTERVAL::d3, day*3},{INTERVAL::w1, week},{INTERVAL::M1, month}});
 
 struct LogData{
     double last_price = 0;
@@ -240,11 +245,10 @@ int main(int argc, char** argv){
     bool is_over = false;
 
     GodBot bot1("");
-    std::cout<<bot1.GetTag()<<'\n';
 
     std::thread bot_thread([&](){
 
-        std::cout<<"> Bot started traiding on "<<symbol<<"\n";
+        std::cout<<"> Bot "<<bot1.GetTag()<<" started traiding on "<<symbol<<"\n";
         log_file_out = logs_folder + '/' + std::to_string(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch()).count())+"_log.json";
         std::ofstream logs_out(log_file_out);
         logs_out<<"[\n"; // TODO: Fix log json-file write
@@ -257,7 +261,7 @@ int main(int argc, char** argv){
                 last_price = last_kline.get_close_price();
                 min_price = last_kline.get_min_price();
                 
-                if((curtime-lasttime).count() >= log_time){
+                if((curtime-lasttime).count() >= time_map.at(timerframe)/sec){
                     ema7_old = ema7;
                     ema7=EMA(7, last_price, ema7);
                     ema25_old = ema25;
@@ -297,7 +301,7 @@ int main(int argc, char** argv){
                 idletime = curtime;
             }
         }
-        std::cout<<"> Bot finished traiding on "<<symbol<<std::endl;
+        std::cout<<"> Bot "<<bot1.GetTag()<<" finished traiding on "<<symbol<<std::endl;
         logs_out<<"\n]"; // TODO: Fix log json-file write
         logs_out.close();
     });
@@ -321,7 +325,10 @@ int main(int argc, char** argv){
         if(!strcmp(cmd,"cfg")){
             json_parser::write_json(std::cout, config);
         }
-        
+
+        if(!strcmp(cmd,"version")){
+            std::cout<<"Version: "<<VERSION<<std::endl;;
+        }        
 
     }
 
