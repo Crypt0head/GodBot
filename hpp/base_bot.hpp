@@ -12,7 +12,7 @@ namespace json_parser = boost::property_tree::json_parser;
 
 using ptree_t = boost::property_tree::ptree;
 
-// class Base_API;
+class base_api;
 // class Base_Logger;
 // class Base_Stratagy;
 
@@ -23,9 +23,10 @@ protected:
     chrono::milliseconds start_time_;
     bool is_pause = false;
     bool is_finish = false;
+    bool is_stdlog = false;
     ptree_t config_;
     std::string tag_;
-    // Base_API* api_;
+    std::unique_ptr<base_api> api_;
     // Base_Logger* logger_;
     // Base_Stratagy* stratagy_;
 public:
@@ -41,4 +42,6 @@ public:
     virtual void SetConfig(ptree_t& cfg) = 0;
     virtual const ptree_t& GetConfig() const = 0;
     virtual void UploadConfig(const ptree_t& cfg) = 0;
+    virtual void SetAPI(const base_api*) = 0;
+    virtual void SwitchLog() = 0;
 };

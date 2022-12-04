@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-#include "binance_api.hpp"
+#include "Kline.hpp"
 
 double EMA(const int& n,const std::vector<Kline>& data,const double& ema){
     const double a=2/(double)(n+1);

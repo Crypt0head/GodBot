@@ -18,5 +18,7 @@ public:
     void UploadConfig(const ptree_t& cfg) override;
     void SetTag(const std::string& tag) override;
     const std::string& GetTag() const override;
+    void SetAPI(const base_api*) override;
+    void SwitchLog() override;
     virtual ~GodBot();
 };

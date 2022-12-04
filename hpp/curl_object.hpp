@@ -25,6 +25,4 @@ public:
 	}
 };
 
-CURL* curl_object::ch = nullptr;
-
 #endif // CURL_OBJECT_HPP
