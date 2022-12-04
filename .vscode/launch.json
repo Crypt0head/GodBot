@@ -34,7 +34,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceRoot}/bin/App.out",
-            "args": ["-c../cfg/config.json",
+            "args": ["-c../cfg/local_config.json",
                      "-s../cfg/secrets.json"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

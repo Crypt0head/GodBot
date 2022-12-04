@@ -13,7 +13,7 @@
 #include "../hpp/ta.hpp"
 #include "../hpp/GodBot.hpp"
 
-#define VERSION "0.2.0"
+#define VERSION "0.3.0"
 
 #define DEFAULT_CONFIG_FILE "cfg/config.json" 
 #define DEFAULT_SECRETS_FILE "cfg/secrets.json" 
@@ -175,7 +175,7 @@ int main(int argc, char** argv){
     try{
         ptree_t tmp;
         auto append = [](ptree_t* src, ptree_t* dest){for(auto i : *src){dest->push_back(i);}};
-        auto keybyvalue = [](const std::string& value){for(auto i : binance_api::time_intervals_){if(value == i.second) return i.first; return INTERVAL::m1;}};
+        auto key_by_value = [](const std::string& value){for(auto i : binance_api::time_intervals_){if(value == i.second) return i.first; return INTERVAL::m1;}};
 
         json_parser::read_json(config.get<std::string>("config_file") ,tmp);
         append(&tmp, &config);
@@ -185,7 +185,7 @@ int main(int argc, char** argv){
         api_config_file = config.get<std::string>("api_config_file");
         pub_key = config.get<std::string>("public_key");
         sec_key = config.get<std::string>("secret_key");
-        timerframe = keybyvalue(config.get<std::string>("timeframe"));
+        timerframe = key_by_value(config.get<std::string>("timeframe"));
         symbol = config.get<std::string>("symbol");
         take_profit = 1 + config.get<double>("take_profit_percentage")/100;
         stop_loss = 1 - config.get<double>("stop_loss_percentage")/100;
@@ -198,7 +198,7 @@ int main(int argc, char** argv){
         return 1;
     }
 
-    binance_api api(pub_key, sec_key, api_config_file);
+    binance_api api(pub_key,sec_key, api_config_file);
 
     double balance = 1000.;
     double coins = 0;
@@ -239,7 +239,8 @@ int main(int argc, char** argv){
 
     bool is_over = false;
 
-    GodBot bot1;
+    GodBot bot1("");
+    std::cout<<bot1.GetTag()<<'\n';
 
     std::thread bot_thread([&](){
 
@@ -316,6 +317,11 @@ int main(int argc, char** argv){
         if(!strcmp(cmd,"logs")){
             log_to_std = !log_to_std;
         }
+
+        if(!strcmp(cmd,"cfg")){
+            json_parser::write_json(std::cout, config);
+        }
+        
 
     }
 

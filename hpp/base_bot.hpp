@@ -4,7 +4,13 @@
 #include <thread>
 #include <chrono>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 namespace chrono = std::chrono;
+namespace json_parser = boost::property_tree::json_parser;
+
+using ptree_t = boost::property_tree::ptree;
 
 // class Base_API;
 // class Base_Logger;
@@ -13,9 +19,12 @@ namespace chrono = std::chrono;
 class Base_Bot{
 protected:
     uint64_t id_;
+    
     chrono::milliseconds start_time_;
     bool is_pause = false;
     bool is_finish = false;
+    ptree_t config_;
+    std::string tag_;
     // Base_API* api_;
     // Base_Logger* logger_;
     // Base_Stratagy* stratagy_;
@@ -27,4 +36,9 @@ public:
     virtual void Pause() = 0;
     virtual void Resume() = 0;
     virtual void Stop() = 0;
+    virtual void SetTag(const std::string& tag) = 0;
+    virtual const std::string& GetTag() const = 0;
+    virtual void SetConfig(ptree_t& cfg) = 0;
+    virtual const ptree_t& GetConfig() const = 0;
+    virtual void UploadConfig(const ptree_t& cfg) = 0;
 };

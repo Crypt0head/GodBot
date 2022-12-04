@@ -38,3 +38,7 @@
 # Logs
 
 logs
+
+# Config
+
+local_*

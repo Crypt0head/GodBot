@@ -62,6 +62,7 @@
         "utility": "cpp",
         "variant": "cpp",
         "ranges": "cpp",
-        "strstream": "cpp"
+        "strstream": "cpp",
+        "codecvt": "cpp"
     }
 }

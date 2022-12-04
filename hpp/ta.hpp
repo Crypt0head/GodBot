@@ -5,8 +5,6 @@
 
 #include "binance_api.hpp"
 
-#define TI_REAL double
-
 double EMA(const int& n,const std::vector<Kline>& data,const double& ema){
     const double a=2/(double)(n+1);
     auto res = a*data.back().get_close_price()+(1-a)*ema;
