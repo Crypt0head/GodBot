@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <thread>
+#include <csignal>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -11,7 +12,7 @@
 #include "../hpp/binance_api.hpp"
 #include "../hpp/GodBot.hpp"
 
-#define VERSION "0.4.1"
+#define VERSION "0.4.2"
 
 #define DEFAULT_CONFIG_FILE "cfg/config.json" 
 #define DEFAULT_SECRETS_FILE "cfg/secrets.json" 
@@ -58,6 +59,8 @@ int options_handler(opt::options_description* desc, opt::variables_map& vm, ptre
 }
 
 int main(int argc, char** argv){
+    std::signal(SIGPIPE, SIG_IGN);
+
     opt::options_description description("All options");
     opt::variables_map vm;
 
