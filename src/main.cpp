@@ -58,8 +58,13 @@ int options_handler(opt::options_description* desc, opt::variables_map& vm, ptre
     return 0;
 }
 
-int main(int argc, char** argv){
-    std::signal(SIGPIPE, SIG_IGN);
+int main(int argc, char** argv){ 
+    
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGPIPE);
+    if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0)
+        return -1;
 
     opt::options_description description("All options");
     opt::variables_map vm;
