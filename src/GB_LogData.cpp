@@ -1,7 +1,6 @@
-#include "../hpp/LogData.hpp"
-#include "../hpp/base_api.hpp"
+#include "../hpp/GB_LogData.hpp"
 
-void LogData::set(const double& lp,const double& b, const double& c, const double& ob, const double& e7, const double& e25, const double& e99){
+void GB_LogData::set(const double& lp,const double& b, const double& c, const double& ob, const double& e7, const double& e25, const double& e99){
     last_price = lp;
     balance = b,
     coins = c;
@@ -11,7 +10,7 @@ void LogData::set(const double& lp,const double& b, const double& c, const doubl
     ema99 = e99;
 }
 
-void write_log(std::ostream& os, LogData& data, ORDER_SIDE side = ORDER_SIDE::NONE, bool std_out = true){
+void GB_LogData::write_log(std::ostream& os, const ORDER_SIDE& side = ORDER_SIDE::NONE) const{
     ptree_t root, logs, log;
     std::ostringstream strs;
     strs<<std::fixed<<std::setprecision(8);
@@ -29,29 +28,29 @@ void write_log(std::ostream& os, LogData& data, ORDER_SIDE side = ORDER_SIDE::NO
         log.put("status", "BUY");    
     }else if(side == ORDER_SIDE::SELL){
         log.put("status", "SELL");
-        strs<<data.balance-data.old_balance;
+        strs<<balance-old_balance;
         log.put("diff", strs.str()); strs.str("");
-        strs<<data.balance/data.old_balance;
+        strs<<balance/old_balance;
         log.put("gain", strs.str()); strs.str("");
     }else{
         log.put("status", "IDLE");    
     }
 
-    strs<<data.last_price;
+    strs<<last_price;
     log.put("last_price", strs.str()); strs.str("");
-    strs<<data.balance;
+    strs<<balance;
     log.put("balance", strs.str()); strs.str("");
-    strs<<data.coins;
+    strs<<coins;
     log.put("coins", strs.str()); strs.str("");
-    strs<<data.coins*data.last_price;
+    strs<<coins*last_price;
     log.put("approximated_price", strs.str()); strs.str("");
-    strs<<data.old_balance;
+    strs<<old_balance;
     log.put("old_balance", strs.str()); strs.str("");
-    strs<<data.ema7;
+    strs<<ema7;
     log.put("ema(7)", strs.str()); strs.str("");
-    strs<<data.ema25;
+    strs<<ema25;
     log.put("ema(25)", strs.str()); strs.str("");
-    strs<<data.ema99;
+    strs<<ema99;
     log.put("ema(99)", strs.str()); strs.str("");
     
     logs.push_back(std::make_pair("", log));
@@ -65,11 +64,13 @@ void write_log(std::ostream& os, LogData& data, ORDER_SIDE side = ORDER_SIDE::NO
 
     if(json_parser::verify_json(root, 0)){
          json_parser::write_json(os, root);
-         if(std_out) 
-            json_parser::write_json(std::cout, root);
     }
     else{
         throw json_parser::json_parser_error("Can't write ptree root to json-file: ", __FILE__, __LINE__);
     }
     os<<",\n";
+}
+
+std::unique_ptr<base_data> GB_LogData::clone() const{
+    return std::make_unique<GB_LogData>(*this);
 }

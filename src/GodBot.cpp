@@ -1,8 +1,7 @@
-#include <filesystem>
-
 #include "../hpp/GodBot.hpp"
 #include "../hpp/binance_api.hpp"
-#include "../hpp/LogData.hpp"
+#include "../hpp/GB_LogData.hpp"
+#include "../hpp/GB_Logger.hpp"
 #include "../hpp/ta.hpp"
 
 #define DEFAULT_CONFIG_FILE "cfg/config.json" 
@@ -34,6 +33,7 @@ GodBot::GodBot(const std::string& tag = ""){
     start_time_ = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch());
     id_ = count_++;
     SetTag(tag);
+    logger_ = new GB_Logger(new GB_LogData);
 }
 
 const std::map<INTERVAL, ulong> time_map = 
@@ -42,7 +42,6 @@ const std::map<INTERVAL, ulong> time_map =
                                         {INTERVAL::d1, day},{INTERVAL::d3, day*3},{INTERVAL::w1, week},{INTERVAL::M1, month}});
 
 void GodBot::Run(){
-
     std::string pub_key, sec_key, symbol, logs_folder, api_config_file;
     double take_profit, stop_loss;
     ulong log_time;
@@ -65,7 +64,7 @@ void GodBot::Run(){
         stop_loss = 1 - config_.get<double>("stop_loss_percentage")/100;
         logs_folder = config_.count("logs_folder") ? config_.get<std::string>("logs_folder") : DEFAULT_LOGS_FOLDER;
         log_time = config_.get<ulong>("log_time");
-        is_stdlog = config_.count("log_to_std") ? config_.get<bool>("log_to_std") : false;
+        is_stdlog = config_.count("log_to_std") ? config_.get<bool>("log_to_std") : false;  //TODO: should be depricated
 
     }
     catch(std::exception& err){
@@ -77,8 +76,7 @@ void GodBot::Run(){
     double ema7=0, ema7_old=0, ema25=0, ema25_old=0, ema99=0;
 
     const ulong starttime = string_to_ptree(api_->get_server_time()).get<ulong>("serverTime");
-    
-    LogData log_data;
+
     json_data r = api_->get_kline(symbol, timerframe, 0, 0, 1000);
     auto pt = string_to_ptree(r);
 
@@ -101,21 +99,14 @@ void GodBot::Run(){
 
     auto last_kline = Kline(api_->get_kline(symbol, timerframe, 0, 0, 1));
 
-    if(!std::filesystem::is_directory(logs_folder))
-        std::filesystem::create_directory(logs_folder);
-
-    std::string log_file_out;
-
     auto lasttime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
     auto idletime = lasttime;
     auto updatetime = lasttime;
 
-    bool is_over = false;
-
     std::cout<<"> Bot "<<GetTag()<<" started traiding on "<<symbol<<"\n";
-    log_file_out = logs_folder + '/' + std::to_string(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch()).count())+"_log.json";
-    std::ofstream logs_out(log_file_out);
-    logs_out<<"[\n"; // TODO: Fix log json-file write
+
+    logger_->set_log_folder(logs_folder);
+    logger_->set_log_file(std::to_string(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch()).count())+"_log.json");
 
     while(!is_finish)
     {
@@ -144,8 +135,8 @@ void GodBot::Run(){
                         in_order = true;
                         coins = balance/min_price*0.999;
                         balance = 0;
-                        log_data.set(min_price, balance, coins, old_balance, ema7, ema25, ema99);
-                        write_log(logs_out, log_data, ORDER_SIDE::BUY, is_stdlog);
+                        logger_->set_log_data(min_price, balance, coins, old_balance, ema7, ema25, ema99);
+                        logger_->output(ORDER_SIDE::BUY);
                     }
                 }
             }
@@ -154,24 +145,22 @@ void GodBot::Run(){
                         in_order = false;
                         balance = coins*last_price*0.999;
                         coins = 0;
-                        log_data.set(last_price, balance, coins, old_balance, ema7, ema25, ema99);
+                        logger_->set_log_data(last_price, balance, coins, old_balance, ema7, ema25, ema99);
                         old_balance = balance;
-                        write_log(logs_out, log_data, ORDER_SIDE::SELL, is_stdlog);
+                        logger_->output(ORDER_SIDE::SELL);
             }
         }
 
         if((curtime-idletime).count() >= log_time)
         {
-            log_data.set(last_price, balance, coins, old_balance, ema7, ema25, ema99);
-            write_log(logs_out, log_data, ORDER_SIDE::NONE, is_stdlog);
+            logger_->set_log_data(last_price, balance, coins, old_balance, ema7, ema25, ema99);
+            logger_->output(ORDER_SIDE::NONE);
             idletime = curtime;
         }
 
         lasttime = curtime;
     }
     std::cout<<"> Bot "<<GetTag()<<" finished traiding on "<<symbol<<std::endl;
-    logs_out<<"\n]"; // TODO: Fix log json-file write
-    logs_out.close();
 }
 
 const uint64_t GodBot::GetID() const {
@@ -209,7 +198,7 @@ const ptree_t& GodBot::GetConfig() const{
 
 void GodBot::UploadConfig(const ptree_t& config){
     config_ = config;
-    // json_parser::write_json(std::cout,config_)
+
     try{
         ptree_t tmp;
         auto append = [](ptree_t* src, ptree_t* dest){for(auto i : *src){dest->push_back(i);}};
@@ -249,4 +238,5 @@ void GodBot::SwitchLog(){
 
 GodBot::~GodBot(){
     count_--;
+    delete logger_;
 }

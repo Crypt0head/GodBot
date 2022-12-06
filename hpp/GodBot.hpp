@@ -20,5 +20,5 @@ public:
     const std::string& GetTag() const override;
     void SetAPI(const base_api*) override;
     void SwitchLog() override;
-    virtual ~GodBot();
+    ~GodBot();
 };
