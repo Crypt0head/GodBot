@@ -132,7 +132,7 @@ const double& Kline::get_opentime() const{
 }
 
 const double& Kline::get_min_price() const{
-    return open_time_ - close_price_ > 0 ? close_price_ : open_price_;
+    return std::min(open_price_, close_price_);
 }
 
 Kline::~Kline(){}
