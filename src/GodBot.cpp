@@ -95,13 +95,15 @@ void GodBot::Run(){
     bool idle = true;
     auto old_balance = balance;
     double last_price = 0.;
-    double min_price = 0.;
+    double min_kline_price = 0.;
 
     auto last_kline = Kline(api_->get_kline(symbol, timerframe, 0, 0, 1));
 
     auto lasttime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
     auto idletime = lasttime;
     auto updatetime = lasttime;
+
+    double max_price = string_to_ptree(api_->get_symbol_price(symbol)).get<double>("price");
 
     std::cout<<"> Bot "<<GetTag()<<" started traiding on "<<symbol<<"\n";
 
@@ -115,7 +117,8 @@ void GodBot::Run(){
         if((curtime-lasttime).count() >= 1){
             last_kline = Kline(api_->get_kline(symbol, timerframe, 0, 0, 1));
             last_price = last_kline.get_close_price();
-            min_price = last_kline.get_min_price();
+            min_kline_price = last_kline.get_min_price();
+            max_price = last_price > max_price ? last_price : max_price;
             
 
             if((curtime-updatetime).count() >= time_map.at(timerframe)/sec){
@@ -130,12 +133,12 @@ void GodBot::Run(){
             if(!in_order)
             {
                 if(ema99>ema25){
-                    if(ema25>ema7 && (ema99-ema25)/(ema25-ema7) >= 2.5 && ema7 > ema7_old && ema25>=ema25_old){
+                    if(ema25>ema7 && (ema99-ema25)/(ema25-ema7) >= 3 && ema7 > ema7_old && ema25>=ema25_old && (max_price - last_price >= max_price*0.01)){
                         idletime = std::chrono::seconds(0);
                         in_order = true;
-                        coins = balance/min_price*0.999;
+                        coins = balance/min_kline_price*0.999;
                         balance = 0;
-                        logger_->set_log_data(min_price, balance, coins, old_balance, ema7, ema25, ema99);
+                        logger_->set_log_data(min_kline_price, balance, coins, old_balance, ema7, ema25, ema99);
                         logger_->output(ORDER_SIDE::BUY);
                     }
                 }
@@ -144,6 +147,7 @@ void GodBot::Run(){
                         idletime = std::chrono::seconds(0);
                         in_order = false;
                         balance = coins*last_price*0.999;
+                        max_price = last_price;
                         coins = 0;
                         logger_->set_log_data(last_price, balance, coins, old_balance, ema7, ema25, ema99);
                         old_balance = balance;
