@@ -99,6 +99,18 @@ json_data binance_api::close_spot_order(const std::string& symbol, const ulong& 
 }
 
 /**
+	@brief Query order on given symbol by orderId
+	@param symbol	- currancy symbol
+	@param orderId	- orderId
+*/
+json_data binance_api::query_spot_order(const std::string& symbol, const ulong& orderId){
+	std::string endpoint = "/order";
+	std::string params = "symbol=" + symbol + "&orderId=" + std::to_string(orderId);
+	
+	return call(endpoint,params,http::REQTYPE::POST, SECURITY_TYPE::SIGNED);
+}
+
+/**
 	@brief Cancel all orders on given symbol
 	@param symbol	- currancy symbol
 */

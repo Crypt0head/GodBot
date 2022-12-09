@@ -18,6 +18,8 @@ public:
 
 	json_data open_spot_order(const std::string& symbol,const ORDER_SIDE& side, const ORDER_TYPE& type, const double& quantity, const double& price, const double& stopprice, const TIME_IN_FORCE& tif) override;
 
+	json_data query_spot_order(const std::string& symbol, const ulong& orderId) override;
+
 	json_data open_stoploss_spot_order(const std::string& symbol,const ORDER_SIDE& side, const double& quantity, const double& price, const double& stopprice,const TIME_IN_FORCE& tif) override;
 
 	json_data close_spot_order(const std::string& symbol, const ulong& orderId) override;

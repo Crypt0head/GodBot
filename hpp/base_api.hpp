@@ -86,6 +86,7 @@ public:
 	virtual void set_cfg(const std::string&) = 0;
 	virtual json_data call(const std::string&, const std::string&, const http::REQTYPE&, const SECURITY_TYPE&) = 0;
 	virtual json_data open_spot_order(const std::string&,const ORDER_SIDE&, const ORDER_TYPE&, const double&, const double&, const double&, const TIME_IN_FORCE&) = 0;
+	virtual json_data query_spot_order(const std::string&, const ulong&) = 0;
 	virtual json_data open_stoploss_spot_order(const std::string&,const ORDER_SIDE&, const double&, const double&, const double&,const TIME_IN_FORCE&) = 0;
 	virtual json_data close_spot_order(const std::string&, const ulong&) = 0;
 	virtual json_data close_all_spot_orders(const std::string&) = 0;
