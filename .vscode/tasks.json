@@ -69,7 +69,11 @@
             "command": "/usr/bin/g++",
             "args": [
                 "-fdiagnostics-color=always",
-                "-g",
+                "-g",             
+                "${workspaceRoot}/src/binance_api.cpp",
+                "${workspaceRoot}/src/base_api.cpp",
+                "${workspaceRoot}/src/Kline.cpp",
+                "${workspaceRoot}/src/curl_object.cpp",
                 "${workspaceRoot}/tests/general_tests.cpp",
                 "-o",
                 "${workspaceRoot}/bin/Test.out",

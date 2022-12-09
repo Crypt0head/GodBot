@@ -1,4 +1,5 @@
 #define CATCH_CONFIG_MAIN
+#define BINANCE_API "../cfg/binance_api.json" 
 
 #include <boost/exception/exception.hpp>
 
@@ -85,7 +86,7 @@ TEST_CASE("MARKET DATA"){
         std::string key = cfg.get<std::string>("public_key");
         std::string sec = cfg.get<std::string>("secret_key");
 
-        binance_api api(key,sec);
+        binance_api api(key, sec, BINANCE_API);
         ptree_t res;
 
         try{
@@ -112,7 +113,7 @@ TEST_CASE("SPOT TRAIDING"){
         std::string key = cfg.get<std::string>("public_key");
         std::string sec = cfg.get<std::string>("secret_key");
 
-        binance_api api(key,sec);
+        binance_api api(key, sec, BINANCE_API);
 
         try{
             auto res = api.call("/order/test",api.build({"symbol=VETUSDT","side=BUY","type=LIMIT","timeInForce=GTC","quantity=1000","price=0.015", "recvWindow=60000"}),http::REQTYPE::POST, SECURITY_TYPE::SIGNED);
@@ -129,7 +130,7 @@ TEST_CASE("SPOT TRAIDING"){
         std::string key = cfg.get<std::string>("public_key");
         std::string sec = cfg.get<std::string>("secret_key");
 
-        binance_api api(key,sec);
+        binance_api api(key, sec, BINANCE_API);
         ptree_t res;
         ptree_t price = string_to_ptree(api.get_symbol_price("VETUSDT"));
 
@@ -139,7 +140,7 @@ TEST_CASE("SPOT TRAIDING"){
             ulong q = 13/sym_price*0.92;
             auto p = std::round(sym_price*0.92*100000)/100000;
 
-            auto str = api.open_spot_order("VETUSDT",ORDER_SIDE::BUY,ORDER_TYPE::LIMIT,q,p);
+            auto str = api.open_spot_order("VETUSDT",ORDER_SIDE::BUY,ORDER_TYPE::LIMIT,q,p,0,TIME_IN_FORCE::GTC);
             res = string_to_ptree(str);
             
             
@@ -162,7 +163,7 @@ TEST_CASE("SPOT TRAIDING"){
         std::string key = cfg.get<std::string>("public_key");
         std::string sec = cfg.get<std::string>("secret_key");
 
-        binance_api api(key,sec);
+        binance_api api(key, sec, BINANCE_API);
         ptree_t res;
 
         try{
@@ -187,7 +188,7 @@ TEST_CASE("SPOT TRAIDING"){
         std::string key = cfg.get<std::string>("public_key");
         std::string sec = cfg.get<std::string>("secret_key");
 
-        binance_api api(key,sec);
+        binance_api api(key, sec, BINANCE_API);
         ptree_t res;
         ptree_t price = string_to_ptree(api.get_symbol_price("VETBUSD"));
         auto sym_price = price.get<double>("price");
@@ -195,7 +196,7 @@ TEST_CASE("SPOT TRAIDING"){
         ulong q = 13/sym_price*0.92;
         auto p = std::round(sym_price*0.92*100000)/100000;
 
-        api.open_spot_order("VETBUSD",ORDER_SIDE::BUY,ORDER_TYPE::LIMIT,q,p);
+        api.open_spot_order("VETBUSD",ORDER_SIDE::BUY,ORDER_TYPE::LIMIT,q,p,0,TIME_IN_FORCE::GTC);
 
         try{
             auto str = api.close_all_spot_orders("VETBUSD");
@@ -224,7 +225,7 @@ TEST_CASE("SPOT TRAIDING"){
         std::string key = cfg.get<std::string>("public_key");
         std::string sec = cfg.get<std::string>("secret_key");
 
-        binance_api api(key,sec);
+        binance_api api(key, sec, BINANCE_API);
         ptree_t res;
         ptree_t price = string_to_ptree(api.get_symbol_price("VETUSDT"));
 
@@ -235,7 +236,7 @@ TEST_CASE("SPOT TRAIDING"){
                 auto sp = std::round(sym_price*1.05*100000)/100000;
                 auto lp = std::round(sym_price*1.02*100000)/100000;
 
-                auto str = api.open_oco_spot_order("VETBUSD",ORDER_SIDE::BUY,q,p,sp,lp);
+                auto str = api.open_oco_spot_order("VETBUSD",ORDER_SIDE::BUY,q,p,sp,lp,TIME_IN_FORCE::GTC);
                 res = string_to_ptree(str);
                 
                 try{
@@ -257,7 +258,7 @@ TEST_CASE("SPOT TRAIDING"){
         std::string key = cfg.get<std::string>("public_key");
         std::string sec = cfg.get<std::string>("secret_key");
 
-        binance_api api(key,sec);
+        binance_api api(key, sec, BINANCE_API);
         ptree_t res;
 
         try{
