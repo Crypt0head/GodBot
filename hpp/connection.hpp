@@ -110,7 +110,7 @@ namespace http {
 				throw std::runtime_error(msg);
 			}
 			
-			curl_object::clean_up();
+			curl_object::reset();
 		}
 
 		json_data get_response() {

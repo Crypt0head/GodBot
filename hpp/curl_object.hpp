@@ -23,6 +23,10 @@ public:
 		curl_easy_cleanup(ch);
 		ch = nullptr;
 	}
+
+	static void reset(){
+		curl_easy_reset(ch);
+	}
 };
 
 #endif // CURL_OBJECT_HPP
