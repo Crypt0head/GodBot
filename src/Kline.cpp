@@ -22,6 +22,7 @@ ptree_t string_to_ptree(const std::string& str){
 		catch(std::exception& e){
 			std::cerr<<e.what()<<std::endl;
 		}
+        is.close();
 		
 		return res;
 }
