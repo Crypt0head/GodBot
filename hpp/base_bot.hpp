@@ -14,7 +14,7 @@ using ptree_t = boost::property_tree::ptree;
 
 class base_api;
 class base_logger;
-// class Base_Stratagy;
+class base_strategy;
 
 class Base_Bot{
 protected:
@@ -26,9 +26,9 @@ protected:
     bool is_stdlog = false;
     ptree_t config_;
     std::string tag_;
-    std::unique_ptr<base_api> api_;
-    base_logger* logger_;
-    // Base_Stratagy* stratagy_;
+    std::shared_ptr<base_api> api_;
+    std::shared_ptr<base_logger> logger_;
+    std::shared_ptr<base_strategy> strategy_;
 public:
     Base_Bot() = default;
     virtual void Run() = 0;

@@ -2,7 +2,7 @@
 #include "../hpp/binance_api.hpp"
 #include "../hpp/GB_LogData.hpp"
 #include "../hpp/GB_Logger.hpp"
-#include "../hpp/ta.hpp"
+#include "../hpp/GB_SimpleStrategy.hpp"
 
 #define DEFAULT_CONFIG_FILE "cfg/config.json" 
 #define DEFAULT_SECRETS_FILE "cfg/secrets.json" 
@@ -33,20 +33,17 @@ GodBot::GodBot(const std::string& tag = ""){
     start_time_ = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch());
     id_ = count_++;
     SetTag(tag);
-    logger_ = new GB_Logger(new GB_LogData);
+    logger_ = std::shared_ptr<GB_Logger>(new GB_Logger(new GB_LogData));
+    strategy_ = std::shared_ptr<GB_SimpleStrategy>(new GB_SimpleStrategy());
 }
 
-const std::map<INTERVAL, ulong> time_map = 
+static const std::map<INTERVAL, ulong> time_map = 
             std::map<INTERVAL, ulong>({{INTERVAL::s1, sec},{INTERVAL::m1, min},{INTERVAL::m3, min*3},{INTERVAL::m5, min*5},{INTERVAL::m15, min*15},{INTERVAL::m30, min*30},
                                        {INTERVAL::h1, hour},{INTERVAL::h2, hour*2},{INTERVAL::h4, hour*4},{INTERVAL::h6, hour*6},{INTERVAL::h8, hour*8},{INTERVAL::h12, hour*12},
                                         {INTERVAL::d1, day},{INTERVAL::d3, day*3},{INTERVAL::w1, week},{INTERVAL::M1, month}});
 
 void GodBot::Run(){
-    std::string pub_key, sec_key, symbol, logs_folder, api_config_file;
-    double take_profit, stop_loss;
-    ulong log_time;
-    INTERVAL timerframe;
-
+    std::string api_config_file, pub_key, sec_key;
     try{
         ptree_t tmp;
         auto append = [](ptree_t* src, ptree_t* dest){for(auto i : *src){dest->push_back(i);}};
@@ -57,114 +54,29 @@ void GodBot::Run(){
         sec_key = config_.get<std::string>("secret_key");
         api_->set_keys(std::make_pair(pub_key, sec_key));
         api_->set_cfg(api_config_file);
-        
-        timerframe = key_by_value(config_.get<std::string>("timeframe"));
-        symbol = config_.get<std::string>("symbol");
-        take_profit = 1 + config_.get<double>("take_profit_percentage")/100;
-        stop_loss = 1 - config_.get<double>("stop_loss_percentage")/100;
-        logs_folder = config_.count("logs_folder") ? config_.get<std::string>("logs_folder") : DEFAULT_LOGS_FOLDER;
-        log_time = config_.get<ulong>("log_time");
-        is_stdlog = config_.count("log_to_std") ? config_.get<bool>("log_to_std") : false;  //TODO: should be depricated
+
+        std::string logs_folder_ = config_.count("logs_folder") ? config_.get<std::string>("logs_folder") : DEFAULT_LOGS_FOLDER;
+        logger_->set_log_folder(logs_folder_);
+        logger_->set_log_file(std::to_string(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch()).count())+"_log.json");
+
+        strategy_->api_ = api_;
+        strategy_->logger_ = logger_;
+        strategy_->timerframe_ = key_by_value(config_.get<std::string>("timeframe"));
+        strategy_->symbol_ = config_.get<std::string>("symbol");
+        strategy_->take_profit_ = 1 + config_.get<double>("take_profit_percentage")/100;
+        strategy_->stop_loss_ = 1 - config_.get<double>("stop_loss_percentage")/100;
+        strategy_->log_time_ = config_.get<ulong>("log_time");
+        strategy_->is_finished_ = std::make_shared<bool>(is_finish);
+        // is_stdlog = config_.count("log_to_std") ? config_.get<bool>("log_to_std") : false;  //TODO: should be depricated
 
     }
     catch(std::exception& err){
         std::cerr<<err.what()<<'\n';
     }
 
-    double balance = 1000.;
-    double coins = 0;
-    double ema7=0, ema7_old=0, ema25=0, ema25_old=0, ema99=0;
-
-    const ulong starttime = string_to_ptree(api_->get_server_time()).get<ulong>("serverTime");
-
-    json_data r = api_->get_kline(symbol, timerframe, 0, 0, 1000);
-    auto pt = string_to_ptree(r);
-
-    std::vector<Kline> vec;
-
-    for(auto i : pt.get_child(""))
-    {
-        vec.push_back(Kline(i.second.get_child("")));
-    }
-
-    ema7 = EMA(7,vec,vec.size()-1);
-    ema25 = EMA(25,vec,vec.size()-1);
-    ema99 = EMA(99,vec,vec.size()-1);
-
-    bool in_order = false;
-    bool idle = true;
-    auto old_balance = balance;
-    double last_price = 0.;
-    double min_kline_price = 0.;
-
-    auto last_kline = Kline(api_->get_kline(symbol, timerframe, 0, 0, 1));
-
-    auto lasttime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
-    auto idletime = lasttime;
-    auto updatetime = lasttime;
-
-    double max_price = string_to_ptree(api_->get_symbol_price(symbol)).get<double>("price");
-
-    std::cout<<"> Bot "<<GetTag()<<" started traiding on "<<symbol<<"\n";
-
-    logger_->set_log_folder(logs_folder);
-    logger_->set_log_file(std::to_string(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock().now().time_since_epoch()).count())+"_log.json");
-
-    while(!is_finish)
-    {
-        auto curtime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
-        
-        if((curtime-lasttime).count() >= 1){
-            last_kline = Kline(api_->get_kline(symbol, timerframe, 0, 0, 1));
-            last_price = last_kline.get_close_price();
-            min_kline_price = last_kline.get_min_price();
-            max_price = last_price > max_price ? last_price : max_price;
-            
-
-            if((curtime-updatetime).count() >= time_map.at(timerframe)/sec){
-                ema7_old = ema7;
-                ema7=EMA(7, last_price, ema7);
-                ema25_old = ema25;
-                ema25=EMA(25, last_price, ema25);
-                ema99=EMA(99, last_price, ema99);
-                updatetime = curtime;
-            }
-
-            if(!in_order)
-            {
-                if(ema99>ema25){
-                    if(ema25>ema7 && (ema99-ema25)/(ema25-ema7) >= 3 && ema7 > ema7_old && ema25>=ema25_old && (max_price - last_price >= max_price*0.01)){
-                        idletime = std::chrono::seconds(0);
-                        in_order = true;
-                        coins = balance/min_kline_price*0.999;
-                        balance = 0;
-                        logger_->set_log_data(min_kline_price, balance, coins, old_balance, ema7, ema25, ema99);
-                        logger_->output(ORDER_SIDE::BUY);
-                    }
-                }
-            }
-            else if(coins*last_price>=old_balance*take_profit || coins*last_price<old_balance*stop_loss){
-                        idletime = std::chrono::seconds(0);
-                        in_order = false;
-                        balance = coins*last_price*0.999;
-                        max_price = last_price;
-                        coins = 0;
-                        logger_->set_log_data(last_price, balance, coins, old_balance, ema7, ema25, ema99);
-                        old_balance = balance;
-                        logger_->output(ORDER_SIDE::SELL);
-            }
-        }
-
-        if((curtime-idletime).count() >= log_time)
-        {
-            logger_->set_log_data(last_price, balance, coins, old_balance, ema7, ema25, ema99);
-            logger_->output(ORDER_SIDE::NONE);
-            idletime = curtime;
-        }
-
-        lasttime = curtime;
-    }
-    std::cout<<"> Bot "<<GetTag()<<" finished traiding on "<<symbol<<std::endl;
+    std::cout<<"> Bot "<<GetTag()<<" started traiding on "<<strategy_->symbol_<<"\n";
+    strategy_->Run();
+    std::cout<<"> Bot "<<GetTag()<<" finished traiding on "<<strategy_->symbol_<<std::endl;
 }
 
 const uint64_t GodBot::GetID() const {
@@ -242,5 +154,4 @@ void GodBot::SwitchLog(){
 
 GodBot::~GodBot(){
     count_--;
-    delete logger_;
 }
