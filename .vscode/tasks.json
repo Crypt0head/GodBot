@@ -15,6 +15,7 @@
                 "${workspaceRoot}/src/curl_object.cpp",
                 "${workspaceRoot}/src/GB_LogData.cpp",
                 "${workspaceRoot}/src/GB_Logger.cpp",
+                "${workspaceRoot}/src/base_strategy.cpp",
                 "-o",
                 "${workspaceRoot}/bin/App.out",
                 "-lcurl",
