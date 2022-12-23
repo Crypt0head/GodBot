@@ -1,3 +1,12 @@
+***Build***
+
+    make build
+
+***Run***
+
+    make run
+
+
 ***Dependances:***
 
     openssl (libssl-dev)
