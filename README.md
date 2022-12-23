@@ -1,8 +1,8 @@
-***Build***
+***Build:***
 
     make build
 
-***Run***
+***Run:***
 
     make run
 
