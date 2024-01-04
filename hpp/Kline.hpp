@@ -28,8 +28,8 @@ public:
 	const Kline* operator=(const Kline&);
 	const bool operator==(const Kline&);
 	int parse_str(const std::string&);
-	const double& get_close_price() const;
-	const double& get_opentime() const;
-	const double& get_min_price() const;
+	const double get_close_price() const;
+	const double get_opentime() const;
+	const double get_min_price() const;
 	~Kline();
 };

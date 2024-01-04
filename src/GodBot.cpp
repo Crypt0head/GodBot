@@ -3,6 +3,7 @@
 #include "../hpp/GB_LogData.hpp"
 #include "../hpp/GB_Logger.hpp"
 #include "../hpp/GB_SimpleStrategy.hpp"
+#include "../hpp/GB_RSIStrategy.h"
 
 #define DEFAULT_CONFIG_FILE "cfg/config.json" 
 #define DEFAULT_SECRETS_FILE "cfg/secrets.json" 
@@ -34,7 +35,7 @@ GodBot::GodBot(const std::string& tag = ""){
     id_ = count_++;
     SetTag(tag);
     logger_ = std::shared_ptr<GB_Logger>(new GB_Logger(new GB_LogData));
-    strategy_ = std::shared_ptr<GB_SimpleStrategy>(new GB_SimpleStrategy());
+    strategy_ = std::shared_ptr<GB_RSIStrategy>(new GB_RSIStrategy());
 }
 
 static const std::map<INTERVAL, ulong> time_map = 

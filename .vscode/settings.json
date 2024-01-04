@@ -64,6 +64,13 @@
         "ranges": "cpp",
         "strstream": "cpp",
         "codecvt": "cpp",
-        "csignal": "cpp"
+        "csignal": "cpp",
+        "cstdarg": "cpp",
+        "algorithm": "cpp",
+        "iterator": "cpp",
+        "memory_resource": "cpp",
+        "random": "cpp",
+        "span": "cpp",
+        "cinttypes": "cpp"
     }
 }

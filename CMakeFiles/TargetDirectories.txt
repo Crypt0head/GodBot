@@ -1,0 +1,3 @@
+/home/shestopalovy/Projects/GodBot/CMakeFiles/godbot.dir
+/home/shestopalovy/Projects/GodBot/CMakeFiles/edit_cache.dir
+/home/shestopalovy/Projects/GodBot/CMakeFiles/rebuild_cache.dir

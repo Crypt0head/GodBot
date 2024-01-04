@@ -16,6 +16,7 @@
                 "${workspaceRoot}/src/GB_LogData.cpp",
                 "${workspaceRoot}/src/GB_Logger.cpp",
                 "${workspaceRoot}/src/GB_SimpleStrategy.cpp",
+                "${workspaceRoot}/src/GB_RSIStrategy.cpp",
                 "-o",
                 "${workspaceRoot}/bin/App.out",
                 "-lcurl",

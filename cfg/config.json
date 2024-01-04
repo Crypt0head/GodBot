@@ -1,12 +1,12 @@
 {
-    "api_config_file" : "../cfg/binance_api.json",
-    "timeframe" : "1s",
-    "symbol" : "LUNCUSDT",
+    "api_config_file" : "cfg/binance_api.json",
+    "timeframe" : "1m",
+    "symbol" : "DOTUSDT",
     "startagy" : "NONE",
-    "take_profit_percentage" : "0.24",
+    "take_profit_percentage" : "1",
     "stop_loss_percentage" : "5",
 
-    "logs_folder" : "../logs",
+    "logs_folder" : "logs",
     "log_time" : "10",
     "log_to_std": "1"
 }

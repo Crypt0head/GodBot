@@ -124,15 +124,15 @@ int Kline::parse_str(const std::string& str){
     return 0;
 }
 
-const double& Kline::get_close_price() const{
+const double Kline::get_close_price() const{
     return close_price_;
 }
 
-const double& Kline::get_opentime() const{
+const double Kline::get_opentime() const{
     return open_time_;
 }
 
-const double& Kline::get_min_price() const{
+const double Kline::get_min_price() const{
     return std::min(open_price_, close_price_);
 }
 
