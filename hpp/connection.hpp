@@ -13,6 +13,7 @@
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
+namespace sys = boost::system;
 
 using json_data = std::string;
 using headers_t = std::map<std::string, std::string>;
@@ -72,16 +73,17 @@ namespace http {
 	};
 
 	class connection {
-	private:
-		std::string recv_data_;
-		std::string recv_header_;
+	// private:
+	// 	std::string recv_data_;
+	// 	std::string recv_header_;
+
 	public:
-		connection(const std::string url = "") {}
-		~connection() {}
+		// connection(const std::string url = "") {}
+		// ~connection() {}
 
 		void request(const std::string url, const request& r, const std::string& params = "", const headers_t& headers = headers_t(), const REQTYPE &rtype = REQTYPE::GET) {
-			recv_data_.clear();
-			recv_header_.clear();
+			// recv_data_.clear();
+			// recv_header_.clear();
 			std::string final_url = url + "?";
 			std::string final_params = params;
 
@@ -89,7 +91,6 @@ namespace http {
 			ip::tcp::socket socket(ios);
 
 			asio::streambuf request;
-			std::ostream request_stream(&request);
 
 			if(rtype == http::REQTYPE::GET){
 				final_url +=params;
@@ -102,7 +103,6 @@ namespace http {
 
 			if(rtype == http::REQTYPE::DELETE){
 				// curl_easy_setopt(curl_object::get_instance(), CURLOPT_CUSTOMREQUEST, "DELETE");
-
 			}
 
 			if(rtype == REQTYPE::POST || rtype == REQTYPE::DELETE){
@@ -110,11 +110,13 @@ namespace http {
 				// curl_easy_setopt(curl_object::get_instance(), CURLOPT_POSTFIELDSIZE, final_params.size());
 			}
 
+			// std::ostream request_stream(&request);
+
 			if(headers.size() > 0) {
-				r.prepare(headers, request_stream);
+				// r.prepare(headers, request_stream);
 			}
 
-			CURLcode rescode;
+			asio::io_context::count_type rescode;
 
 			try{
 				rescode = ios.run();
@@ -123,17 +125,29 @@ namespace http {
 				std::cout<<e.what()<<std::endl;
 			}
 
-			if (rescode != CURLE_OK) {
-				std::string msg{ "!> curl_easy_perform failed with error: " };
-				msg += curl_easy_strerror(rescode);
+			if (rescode == 0) {
+				std::string msg{ "!> Failed with error" };
 				throw std::runtime_error(msg);
 			}
-			
-			curl_object::reset();
+
+			// sys::error_code ec;
+			// asio::streambuf recv_databuf_;
+
+			// try {
+			// 	socket.read_some(recv_databuf_, ec);
+			// }
+			// catch(std::exception &e) {
+			// 	std::cout << e.what() << std::endl;
+			// }
+
+			// std::stringstream ss;
+			// ss << &recv_databuf_;
+
+			// std::cout << ss.str() << std::endl;
 		}
 
 		json_data get_response() {
-			return recv_data_;
+			return std::string("connection::get_response() placeholder\n");//recv_data_;
 		}
 
 	private:

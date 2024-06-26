@@ -48,7 +48,7 @@ void GodBot::Run(){
     try{
         ptree_t tmp;
         auto append = [](ptree_t* src, ptree_t* dest){for(auto i : *src){dest->push_back(i);}};
-        auto key_by_value = [](const std::string& value){for(auto i : base_api::time_intervals_){if(value == i.second) return i.first; return INTERVAL::m1;}};
+        auto key_by_value = [](const std::string& value){for(auto i : base_api::time_intervals_){if(value == i.second) return i.first; return INTERVAL::m1;} return INTERVAL::m1;};
 
         api_config_file = config_.get<std::string>("api_config_file");
         pub_key = config_.get<std::string>("public_key");
