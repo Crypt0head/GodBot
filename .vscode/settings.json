@@ -71,6 +71,7 @@
         "memory_resource": "cpp",
         "random": "cpp",
         "span": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "*.ipp": "cpp"
     }
 }
