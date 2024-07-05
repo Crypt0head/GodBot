@@ -32,6 +32,15 @@ json_data binance_api::call(const std::string& method, const std::string& p, con
 	
 	params.append(p);
 
+	http::request *reqobj = nullptr; 
+	
+	if (rtype == http::REQTYPE::GET) {
+		reqobj = new http::get();
+	}
+	else if (rtype == http::REQTYPE::POST) {
+		reqobj = new http::post();
+	}
+
 	if(stype != SECURITY_TYPE::NONE){
 		params.append("&timestamp=" + std::to_string(get_timestamp().count()));
 		std::string api_key_header = api_cfg_.get<std::string>("api_Header");
@@ -45,15 +54,16 @@ json_data binance_api::call(const std::string& method, const std::string& p, con
 	}
 
 	do{
-		try{
-			connection_.request(url_ + method, http::post(), params, headers, rtype);
+		try {
+			connection_.request(url_ + method, *reqobj, params, headers, rtype);
 			break;
-		}catch(const std::exception& e)
-		{
+		} catch (const std::exception& e) {
 			std::cerr<<e.what()<<std::endl;
 			sleep(10);
 		}
-	}while(true);
+	} while(true);
+
+	delete reqobj;
 
 	return connection_.get_response();
 }

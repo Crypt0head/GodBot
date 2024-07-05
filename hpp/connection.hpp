@@ -15,6 +15,7 @@ namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
 namespace sys = boost::system;
 
+using asio::ip::tcp;
 using json_data = std::string;
 using headers_t = std::map<std::string, std::string>;
 using slist = std::list<std::string>;
@@ -50,7 +51,7 @@ namespace http {
 				
 			}
 
-			request_stream << "\r\n";
+			request_stream << "Connection: close\r\n\r\n";
 		}
 	};
 
@@ -68,7 +69,7 @@ namespace http {
 				
 			}
 
-			request_stream << "\r\n";
+			request_stream << "Connection: close\r\n\r\n";
 		}
 	};
 
@@ -84,7 +85,7 @@ namespace http {
 		void request(const std::string url, const request& r, const std::string& params = "", const headers_t& headers = headers_t(), const REQTYPE &rtype = REQTYPE::GET) {
 			// recv_data_.clear();
 			// recv_header_.clear();
-			std::string final_url = url + "?";
+			std::string final_url = url; // + "?";
 			std::string final_params = params;
 
 			asio::io_service ios;
@@ -95,6 +96,15 @@ namespace http {
 			if(rtype == http::REQTYPE::GET){
 				final_url +=params;
 			}
+
+			// tcp::resolver resolver(ios);
+			// tcp::resolver::query query(final_url);
+			// std::cerr << query.host_name() << std::endl;
+			// tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+			tcp::endpoint connectionEndpoint(asio::ip::make_address("api.binance.com"), 443);
+
+			asio::connect(socket, connectionEndpoint);
+
 
 			// curl_easy_setopt(curl_object::get_instance(), CURLOPT_URL, final_url.c_str());
 			// curl_easy_setopt(curl_object::get_instance(), CURLOPT_WRITEDATA, &recv_data_);
@@ -110,40 +120,40 @@ namespace http {
 				// curl_easy_setopt(curl_object::get_instance(), CURLOPT_POSTFIELDSIZE, final_params.size());
 			}
 
-			// std::ostream request_stream(&request);
+			std::ostream request_stream(&request);
 
-			if(headers.size() > 0) {
-				// r.prepare(headers, request_stream);
-			}
+			// if(headers.size() > 0) {
+				r.prepare(headers, request_stream);
+			// }
 
 			asio::io_context::count_type rescode;
 
 			try{
-				rescode = ios.run();
+				rescode = asio::write(socket, request);
 			}
 			catch(std::exception& e){
 				std::cout<<e.what()<<std::endl;
 			}
 
-			if (rescode == 0) {
-				std::string msg{ "!> Failed with error" };
+			if (rescode) {
+				std::string msg{ "!> Failed with error : \nHeaders: " + std::to_string(headers.size()) + "\nRequest: " + std::string((std::istreambuf_iterator<char>(&request)), std::istreambuf_iterator<char>()) };
 				throw std::runtime_error(msg);
 			}
 
-			// sys::error_code ec;
-			// asio::streambuf recv_databuf_;
+			sys::error_code ec;
+			asio::streambuf recv_databuf_;
 
-			// try {
-			// 	socket.read_some(recv_databuf_, ec);
-			// }
-			// catch(std::exception &e) {
-			// 	std::cout << e.what() << std::endl;
-			// }
+			try {
+				rescode = asio::read(socket, recv_databuf_, ec);
+			}
+			catch(std::exception &e) {
+				std::cout << e.what() << std::endl;
+			}
 
-			// std::stringstream ss;
-			// ss << &recv_databuf_;
-
-			// std::cout << ss.str() << std::endl;
+			if (rescode) {
+				std::string msg{ "!> Failed with error : \nHeaders: " + std::to_string(headers.size()) + "\nResponse: " + std::string((std::istreambuf_iterator<char>(&recv_databuf_)), std::istreambuf_iterator<char>()) };
+				throw std::runtime_error(msg);
+			}
 		}
 
 		json_data get_response() {
