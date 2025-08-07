@@ -1,27 +1,33 @@
 #include "../hpp/binance_api.hpp"
 
-binance_api::binance_api(){}
+binance_api::binance_api() {}
 
-binance_api::binance_api(const std::string& key, const std::string& secret, const std::string& api_file = BINANCE_API_CONFIG_FILE){
+binance_api::binance_api(const std::string& key, const std::string& secret, const std::string& api_file = BINANCE_API_CONFIG_FILE) {
 	key_ = key;
 	secret_ = secret;
 
 	set_cfg(api_file);
 }	
 
-void binance_api::set_cfg(const std::string& file = BINANCE_API_CONFIG_FILE){
+void binance_api::set_cfg(const std::string& file = BINANCE_API_CONFIG_FILE) {
+	std::string host;
+	std::string port;
+
 	try{
 		boost::property_tree::read_json(file, api_cfg_);
-		url_ = api_cfg_.get<std::string>("api_Base_url") + api_cfg_.get<std::string>("api_Version");
+		apiv_ = api_cfg_.get<std::string>("api_Version");
+		host = api_cfg_.get<std::string>("api_Host");
+		port = api_cfg_.get<std::string>("api_Port");
 	}
 	catch(std::exception &e){
-		std::cerr<<e.what()<<std::endl;
+		std::cerr << e.what() << std::endl;
+		throw e;
 	}
-	connection_ = http::connection();
+	connection_ = http::connection(host, port);
 	timestamp_ = get_timestamp();
 }
 
-void binance_api::set_keys(std::pair<std::string, std::string> keys){
+void binance_api::set_keys(std::pair<std::string, std::string> keys) {
 	key_ = keys.first;
 	secret_ = keys.second;
 }
@@ -45,7 +51,6 @@ json_data binance_api::call(const std::string& method, const std::string& p, con
 		params.append("&timestamp=" + std::to_string(get_timestamp().count()));
 		std::string api_key_header = api_cfg_.get<std::string>("api_Header");
 		headers[api_key_header] = key_;
-
 		
 		if(stype == SECURITY_TYPE::SIGNED){
 			std::string sign = this->signature(params);
@@ -55,10 +60,10 @@ json_data binance_api::call(const std::string& method, const std::string& p, con
 
 	do{
 		try {
-			connection_.request(url_ + method, *reqobj, params, headers, rtype);
+			connection_.request(apiv_ + method, *reqobj, params, headers, rtype);
 			break;
 		} catch (const std::exception& e) {
-			std::cerr<<e.what()<<std::endl;
+			std::cerr << e.what() << std::endl;
 			sleep(10);
 		}
 	} while(true);
@@ -77,7 +82,7 @@ json_data binance_api::call(const std::string& method, const std::string& p, con
 	@param price	- order price
 	@param tif		- sets order expiration rule
 */
-json_data binance_api::open_spot_order(const std::string& symbol,const ORDER_SIDE& side, const ORDER_TYPE& type, const double& quantity, const double& price, const double& stopprice = 0., const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC){
+json_data binance_api::open_spot_order(const std::string& symbol,const ORDER_SIDE& side, const ORDER_TYPE& type, const double& quantity, const double& price, const double& stopprice = 0., const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC) {
 	std::string endpoint = "/order";
 	std::string params = "symbol=" + symbol + "&side=" + order_side_.at(side) 
 						+ "&type=" + order_type_.at(type) + "&quantity=" + std::to_string(quantity) 
@@ -89,7 +94,7 @@ json_data binance_api::open_spot_order(const std::string& symbol,const ORDER_SID
 	return call(endpoint,params,http::REQTYPE::POST, SECURITY_TYPE::SIGNED);
 }
 
-json_data binance_api::open_stoploss_spot_order(const std::string& symbol,const ORDER_SIDE& side, const double& quantity, const double& price, const double& stopprice,const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC){
+json_data binance_api::open_stoploss_spot_order(const std::string& symbol,const ORDER_SIDE& side, const double& quantity, const double& price, const double& stopprice,const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC) {
 	std::string endpoint = "/order";
 	std::string params = "symbol=" + symbol + "&side=" + order_side_.at(side) 
 						+ "&type=" + order_type_.at(ORDER_TYPE::STOP_LOSS_LIMIT) + "&quantity=" + std::to_string(quantity) 
@@ -102,7 +107,7 @@ json_data binance_api::open_stoploss_spot_order(const std::string& symbol,const 
 	@param symbol	- currancy symbol
 	@param orderId	- order's Id
 */
-json_data binance_api::close_spot_order(const std::string& symbol, const ulong& orderId){
+json_data binance_api::close_spot_order(const std::string& symbol, const ulong& orderId) {
 	std::string endpoint = "/order";
 	std::string params = "symbol=" + symbol  + "&orderId=" + std::to_string(orderId);
 	return call(endpoint,params,http::REQTYPE::DELETE, SECURITY_TYPE::SIGNED);
@@ -113,7 +118,7 @@ json_data binance_api::close_spot_order(const std::string& symbol, const ulong& 
 	@param symbol	- currancy symbol
 	@param orderId	- orderId
 */
-json_data binance_api::query_spot_order(const std::string& symbol, const ulong& orderId){
+json_data binance_api::query_spot_order(const std::string& symbol, const ulong& orderId) {
 	std::string endpoint = "/order";
 	std::string params = "symbol=" + symbol + "&orderId=" + std::to_string(orderId);
 	
@@ -124,32 +129,32 @@ json_data binance_api::query_spot_order(const std::string& symbol, const ulong& 
 	@brief Cancel all orders on given symbol
 	@param symbol	- currancy symbol
 */
-json_data binance_api::close_all_spot_orders(const std::string& symbol){
+json_data binance_api::close_all_spot_orders(const std::string& symbol) {
 	std::string endpoint = "/openOrders";
 	std::string params = "symbol=" + symbol;
-	return call(endpoint,params,http::REQTYPE::DELETE, SECURITY_TYPE::SIGNED);
+	return call(endpoint, params, http::REQTYPE::DELETE, SECURITY_TYPE::SIGNED);
 }
 
-json_data binance_api::get_symbol_price(const std::string& symbol){
+json_data binance_api::get_symbol_price(const std::string& symbol) {
 	std::string endpoint = "/ticker/price";
 	std::string params = "symbol=" + symbol;
-	return call(endpoint,params,http::REQTYPE::GET);
+	return call(endpoint, params, http::REQTYPE::GET);
 }
 
-json_data binance_api::get_server_time(){
+json_data binance_api::get_server_time() {
 	std::string endpoint = "/time";
 	std::string params = "";
-	return call(endpoint,params,http::REQTYPE::GET);
+	return call(endpoint, params, http::REQTYPE::GET);
 }
 
-json_data binance_api::get_kline(const std::string& symbol,const INTERVAL& i, const ulong& starttime= 0, const ulong& endtime= 0, const int32_t& limit = 1){
+json_data binance_api::get_kline(const std::string& symbol,const INTERVAL& i, const ulong& starttime= 0, const ulong& endtime= 0, const int32_t& limit = 1) {
 	std::string endpoint = "/klines";
 	std::string params = "symbol=" + symbol + "&interval=" + time_intervals_.at(INTERVAL::m1) + "&limit=" +std::to_string(limit);
 	if(starttime!=0)
 	{
 		params += "&startTime=" + std::to_string(starttime);	
 	}
-	return call(endpoint,params,http::REQTYPE::GET);
+	return call(endpoint, params, http::REQTYPE::GET);
 }
 
 /**
@@ -162,20 +167,19 @@ json_data binance_api::get_kline(const std::string& symbol,const INTERVAL& i, co
 	@param stop_price - stop price trigger
 	@param limit_price - price of limit order
 */
-json_data binance_api::open_oco_spot_order(const std::string& symbol,const ORDER_SIDE& side, const double& quantity, const double& price, const double& stop_price, const double limit_price, const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC){
+json_data binance_api::open_oco_spot_order(const std::string& symbol,const ORDER_SIDE& side, const double& quantity, const double& price, const double& stop_price, const double limit_price, const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC) {
 	std::string endpoint = "/order/oco";
 	std::string params = "symbol=" + symbol + "&side=" + order_side_.at(side) 
 						+ "&quantity=" + std::to_string(quantity) 
 						+ "&price=" + std::to_string(price) + "&stopPrice=" + std::to_string(stop_price) 
 						+ "&stopLimitPrice=" + std::to_string(limit_price) + "&stopLimitTimeInForce="  + time_in_force_.at(tif);
-	return call(endpoint,params,http::REQTYPE::POST, SECURITY_TYPE::SIGNED);
+	return call(endpoint, params, http::REQTYPE::POST, SECURITY_TYPE::SIGNED);
 }
 
-json_data binance_api::close_oco_spot_order(const std::string& symbol, const ulong& orderListId)
-{
+json_data binance_api::close_oco_spot_order(const std::string& symbol, const ulong& orderListId) {
 	std::string endpoint = "/orderList";
 	std::string params = "symbol=" + symbol + "&orderListId=" + std::to_string(orderListId);
-	return call(endpoint,params,http::REQTYPE::DELETE, SECURITY_TYPE::SIGNED);
+	return call(endpoint, params, http::REQTYPE::DELETE, SECURITY_TYPE::SIGNED);
 }
 
 std::string binance_api::build(std::vector<std::string> params_) {
@@ -192,8 +196,8 @@ std::string binance_api::signature(const std::string& params) {
 	return hmac_sha256.hex_digest();
 }
 
-std::unique_ptr<base_api> binance_api::clone() const{
+std::unique_ptr<base_api> binance_api::clone() const {
 	return std::make_unique<binance_api>(*this);
 }
 
-binance_api::~binance_api(){}
+binance_api::~binance_api() {}

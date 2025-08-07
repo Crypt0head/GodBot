@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.18)
 
 project(godbot CXX)
 
@@ -10,7 +10,7 @@ set (Boost_USE_STATIC_LIBS ON)
 set (Boost_USE_STATIC_RUNTIME OFF)
 set (BOOST_ALL_DYN_LINK OFF)
 
-find_package(Boost 1.83 COMPONENTS program_options REQUIRED)
+find_package(Boost 1.74 COMPONENTS program_options REQUIRED)
 
 include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
 

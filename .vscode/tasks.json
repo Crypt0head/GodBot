@@ -12,14 +12,12 @@
                 "${workspaceRoot}/src/binance_api.cpp",
                 "${workspaceRoot}/src/base_api.cpp",
                 "${workspaceRoot}/src/Kline.cpp",
-                "${workspaceRoot}/src/curl_object.cpp",
                 "${workspaceRoot}/src/GB_LogData.cpp",
                 "${workspaceRoot}/src/GB_Logger.cpp",
                 "${workspaceRoot}/src/GB_SimpleStrategy.cpp",
                 "${workspaceRoot}/src/GB_RSIStrategy.cpp",
                 "-o",
                 "${workspaceRoot}/bin/App.out",
-                "-lcurl",
                 "-lssl",
                 "-lcrypto",
                 "-lpthread",
@@ -76,11 +74,9 @@
                 "${workspaceRoot}/src/binance_api.cpp",
                 "${workspaceRoot}/src/base_api.cpp",
                 "${workspaceRoot}/src/Kline.cpp",
-                "${workspaceRoot}/src/curl_object.cpp",
                 "${workspaceRoot}/tests/general_tests.cpp",
                 "-o",
                 "${workspaceRoot}/bin/Test.out",
-                "-lcurl",
                 "-lssl",
                 "-lcrypto", 
                 "-lpthread",
@@ -97,6 +93,34 @@
                 "isDefault": true
             },
             "detail": "Unit-Tests"
+        },
+        {
+            "type": "cppbuild",
+            "label": "UNIT-TESTS-TA",
+            "command": "/usr/bin/g++",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-g",             
+                "${workspaceRoot}/src/Kline.cpp",
+                "${workspaceRoot}/tests/ta_tests.cpp",
+                "-o",
+                "${workspaceRoot}/bin/TA-Test.out",
+                "-lssl",
+                "-lcrypto", 
+                "-lpthread",
+                "-std=c++20"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Unit-Tests-TA"
         }
     ],
     "version": "2.0.0"

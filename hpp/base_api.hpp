@@ -70,7 +70,7 @@ protected:
 	std::chrono::milliseconds timestamp_;
 	std::string key_;
 	std::string secret_;
-	std::string url_;
+	std::string apiv_;
 	http::connection connection_;
     ptree_t api_cfg_;
 
@@ -82,6 +82,7 @@ public:
 
 public:
 	base_api() = default;
+	base_api(std::string host, std::string port) : connection_(host, port) {};
 	virtual void set_keys(std::pair<std::string, std::string>) = 0;
 	virtual void set_cfg(const std::string&) = 0;
 	virtual json_data call(const std::string&, const std::string&, const http::REQTYPE&, const SECURITY_TYPE&) = 0;

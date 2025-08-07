@@ -244,11 +244,11 @@ TEST_CASE("SPOT TRAIDING"){
                     b = true;
                 }
                 catch(std::exception &e){
-                    std::cerr<<e.what()<<std::endl<<str<<std::endl;
+                    std::cerr << e.what() << std::endl << str << std::endl;
                 }
             }
             catch(std::exception &e){
-                std::cerr<<e.what()<<std::endl;
+                std::cerr << e.what() << std::endl;
         }
 
         REQUIRE(b);
@@ -262,18 +262,18 @@ TEST_CASE("SPOT TRAIDING"){
         ptree_t res;
 
         try{
-            auto str = api.close_oco_spot_order("VETBUSD",orderId);
-            res = string_to_ptree(str);
+                auto str = api.close_oco_spot_order("VETBUSD",orderId);
+                res = string_to_ptree(str);
             
-            try{
-                b = !static_cast<bool>(res.get<std::string>("listOrderStatus").compare("ALL_DONE"));
+                try{
+                        b = !static_cast<bool>(res.get<std::string>("listOrderStatus").compare("ALL_DONE"));
                 }
                 catch(std::exception &e){
-                    std::cerr<<e.what()<<std::endl<<str<<std::endl;
+                        std::cerr << e.what() << std::endl << str << std::endl;
                 }
             }
             catch(std::exception &e){
-                std::cerr<<e.what()<<std::endl;
+                std::cerr << e.what() << std::endl;
         }
 
         REQUIRE(b);

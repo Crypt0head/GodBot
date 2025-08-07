@@ -30,19 +30,24 @@ double EMA(const int& n,const std::vector<Kline>& data,const double& ema){
 }
 
 double EMA(const int& n, const std::vector<double>& data, const int& pos = 0){
-    if(data.empty()) {
-        return 0.;
-    }
+    double res = 0.;
     
-    if(pos != 0)
+    if (data.empty()) {
+        return res;
+    }
+
+    if (pos != 0)
     {
         const double a = 2 / (double)(n + 1);
         auto ema = accurize(EMA(n, data, pos - 1));
-        auto res = a * data[pos] + (1 - a) * ema;
-        return accurize(res);
+        auto ema_res = a * data[pos] + (1 - a) * ema;
+        res = accurize(ema_res);
+    }
+    else {
+        res = data[0];
     }
 
-    return data[0];
+    return res;
 }
 
 /**
@@ -53,16 +58,6 @@ double EMA(const int& n, const std::vector<double>& data, const int& pos = 0){
     @return value of EMA for given first n Klines
 */
 double EMA(const int& n, std::vector<Kline>& data, const int& pos = 0){
-    // if(pos != 0)
-    // {
-    //     const double a = 2 / (double)(n + 1);
-    //     auto ema = accurize(EMA(n,data,pos-1), 3);
-    //     auto res = a * data[pos].get_close_price() + (1 - a) * ema;
-    //     return accurize(res, 3);
-    // }
-
-    // return data[0].get_close_price();
-
     std::vector<double> double_array;
 
     for(auto kline : data) {
@@ -85,13 +80,13 @@ double RSI(const int& n, const std::vector<Kline>& data) {
     
     int i = 0;
 
-    auto print = [](std::vector<double> &data) -> void{for(auto i : data){std::cout << i << ",";} std::cout<<"\n";};
+    auto print = [](std::vector<double> &data) -> void { for(auto i : data) { std::cout << i << ","; } std::cout<<"\n"; };
 
     for(i = data.size() - n; i < data.size(); ++i) {
-        if (data[i].get_close_price() > data[i-1].get_close_price()){
+        if (data[i].get_close_price() > data[i-1].get_close_price()) {
             up.push_back(data[i].get_close_price());
         }
-        else if (data[i].get_close_price() < data[i-1].get_close_price()){
+        else if (data[i].get_close_price() < data[i-1].get_close_price()) {
             down.push_back(data[i].get_close_price());
         }
         else {
@@ -103,8 +98,8 @@ double RSI(const int& n, const std::vector<Kline>& data) {
     // print(up);
     // print(down);
 
-    double ema_up = EMA(n, up, up.size());
-    double ema_down = EMA(n, down, down.size());
+    double ema_up = EMA(n, up, up.size() - 1);
+    double ema_down = EMA(n, down, down.size() - 1);
 
     if(!ema_down) {
         return 0;
@@ -116,8 +111,8 @@ double RSI(const int& n, const std::vector<Kline>& data) {
 
     // std::cout << "EMA(down) = " << ema_down << "\n";
 
-    // std::cout << "Amount of up-closed Kline: " << up.size() << "\n";
-    // std::cout << "Amount of down-closed Kline: " << down.size() << "\n";
+    std::cout << "Amount of up-closed Kline: " << up.size() << "\n";
+    std::cout << "Amount of down-closed Kline: " << down.size() << "\n";
 
     return 100 - (100 / (1 + rs));
 }

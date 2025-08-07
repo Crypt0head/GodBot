@@ -43,6 +43,7 @@ void GB_RSIStrategy::Run(){
     }
 
     double rsi14 = RSI(14, vec);
+    double ema14 = 0.;
 
     bool in_order = false;
     bool idle = true;
@@ -61,8 +62,8 @@ void GB_RSIStrategy::Run(){
     while(!*is_finished_)
     {
         auto curtime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
-        
-        if((curtime-lasttime).count() >= 1){
+        auto time_lapse = (curtime-lasttime).count();
+        if(time_lapse >= time_map.at(timerframe_) / sec) {
             last_kline = Kline(api_->get_kline(symbol_, timerframe_, 0, 0, 1));
             last_price = last_kline.get_close_price();
             min_kline_price = last_kline.get_min_price();
@@ -70,8 +71,9 @@ void GB_RSIStrategy::Run(){
 
             vec.push_back(last_kline);
 
-            if((curtime-updatetime).count() >= time_map.at(timerframe_)/sec){
+            if((curtime-updatetime).count() >= time_map.at(timerframe_) / sec) {
                 rsi14 = RSI(14, vec);
+                ema14 = EMA(14, vec, 13);
                 
                 // std::cout << "Last value: " << vec[vec.size() - 1].get_close_price() << std::endl; 
 
@@ -80,7 +82,7 @@ void GB_RSIStrategy::Run(){
 
             if(!in_order)
             {
-                if(rsi14 < 0.3) {
+                if(rsi14 < 16.) {
                     idletime = std::chrono::seconds(0);
                     in_order = true;
                     coins = balance / min_kline_price * 0.999;
@@ -100,6 +102,8 @@ void GB_RSIStrategy::Run(){
                         old_balance = balance;
                         logger_->output(ORDER_SIDE::SELL);
             }
+
+            lasttime = curtime; 
         }
 
         if((curtime-idletime).count() >= log_time_)
@@ -108,9 +112,10 @@ void GB_RSIStrategy::Run(){
             logger_->output(ORDER_SIDE::NONE);
             idletime = curtime;
 
-            // std::cout << "RSI(14): " << rsi14 << std::endl;
+            std::cout << "RSI(14): " << rsi14 << std::endl;
+            std::cout << "EMA(14): " << ema14 << std::endl;
         }
 
-        lasttime = curtime;
+        // lasttime = curtime;
     }
 }

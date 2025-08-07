@@ -6,9 +6,8 @@
 
 class binance_api : public base_api {
 public:
-    binance_api();
-
-	binance_api(const std::string& key, const std::string& secret, const std::string& api_file);
+	explicit binance_api();
+	explicit binance_api(const std::string& key, const std::string& secret, const std::string& api_file);
 
 	void set_keys(std::pair<std::string, std::string> keys) override;
 

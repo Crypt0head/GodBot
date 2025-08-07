@@ -72,6 +72,9 @@
         "random": "cpp",
         "span": "cpp",
         "cinttypes": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "any": "cpp",
+        "coroutine": "cpp",
+        "source_location": "cpp"
     }
 }

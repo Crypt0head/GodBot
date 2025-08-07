@@ -14,9 +14,9 @@
 
 #define VERSION "0.5.5"
 
-#define DEFAULT_CONFIG_FILE "cfg/config.json" 
-#define DEFAULT_SECRETS_FILE "cfg/secrets.json" 
-#define DEFAULT_API_FILE "/cfg/binance_api.json" 
+#define DEFAULT_CONFIG_FILE "../cfg/config.json" 
+#define DEFAULT_SECRETS_FILE "../cfg/secrets.json" 
+#define DEFAULT_API_FILE "../cfg/binance_api.json" 
 
 #define DEFAULT_LOGS_FOLDER "logs"
 
@@ -90,7 +90,7 @@ int main(int argc, char** argv){
     }
 
     GodBot bot1(""); 
-    bot1.SetAPI(new binance_api);
+    bot1.SetAPI(new binance_api());
     bot1.UploadConfig(config);
 
     std::thread bot_thread([&bot1](){bot1.Run();});
@@ -116,7 +116,7 @@ int main(int argc, char** argv){
         }
 
         if(!strcmp(cmd,"version")){
-            std::cout<<"GodBot version: "<<VERSION<<std::endl;;
+            std::cout << "GodBot version: " << VERSION << std::endl;;
         }        
 
     }
