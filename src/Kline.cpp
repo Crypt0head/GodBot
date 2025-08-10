@@ -128,6 +128,10 @@ const double Kline::get_close_price() const{
     return close_price_;
 }
 
+const double Kline::get_open_price() const{
+    return open_price_;
+}
+
 const double Kline::get_opentime() const{
     return open_time_;
 }

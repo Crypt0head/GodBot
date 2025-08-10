@@ -30,7 +30,7 @@
             ]
         },
         {
-            "name": "Debug Launch",
+            "name": "Build & Debug Launch",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceRoot}/bin/App.out",
@@ -42,6 +42,31 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "preLaunchTask": "GodBot",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description":  "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Debug Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/bin/App.out",
+            "args": ["-c../cfg/local_config.json",
+                     "-s../cfg/secrets.json"],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

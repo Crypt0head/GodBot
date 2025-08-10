@@ -2,6 +2,7 @@
     "api_Name":"BINANCE_API",
     "api_Host":"api.binance.com",
     "api_Version":"/api/v3",
+    "sapi_Version":"/sapi/v1/margin",
     "api_Port" : 443,
     "api_Limit":"1200",
     "api_Header":"X-MBX-APIKEY"

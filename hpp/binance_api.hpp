@@ -13,7 +13,7 @@ public:
 
 	void set_cfg(const std::string& file) override;
 
-	json_data call(const std::string& method, const std::string& p, const http::REQTYPE& rtype, const SECURITY_TYPE& stype) override;
+	json_data call(const std::string& method, const std::string& p, const http::REQTYPE& rtype, const SECURITY_TYPE& stype, const bool sapi) override;
 
 	json_data open_spot_order(const std::string& symbol,const ORDER_SIDE& side, const ORDER_TYPE& type, const double& quantity, const double& price, const double& stopprice, const TIME_IN_FORCE& tif) override;
 
@@ -28,6 +28,12 @@ public:
 	json_data get_symbol_price(const std::string& symbol) override;
 
 	json_data get_server_time() override;
+
+	json_data get_account(bool omitZeroBalances) override;
+
+	json_data get_isolated_margin_account(const std::string& symbol) override;
+
+	json_data open_isolated_margin_order(const std::string& symbol,const ORDER_SIDE& side, const ORDER_TYPE& type, const ORDER_RESEPONSE_TYPE& response_type, const ORDER_SIDE_EFFECT_TYPE& side_effect_type, const double& quantity, const double& price, const double& stopprice, const TIME_IN_FORCE& tif) override;
 
 	json_data get_kline(const std::string& symbol,const INTERVAL& i, const ulong& starttime, const ulong& endtime, const int32_t& limit) override;
 

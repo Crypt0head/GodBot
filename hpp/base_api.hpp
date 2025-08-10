@@ -40,6 +40,19 @@ enum class ORDER_TYPE{
 	LIMIT_MAKER
 };
 
+enum class ORDER_RESEPONSE_TYPE {
+	ACK,
+	RESULT,
+	FULL
+};
+
+enum class ORDER_SIDE_EFFECT_TYPE {
+	NO_SIDE_EFFECT,
+	MARGIN_BUY,
+	AUTO_REPAY,
+	AUTO_BORROW_REPAY
+};
+
 enum class SECURITY_TYPE{
 	SIGNED,
 	PUB,
@@ -71,6 +84,7 @@ protected:
 	std::string key_;
 	std::string secret_;
 	std::string apiv_;
+	std::string sapiv_;
 	http::connection connection_;
     ptree_t api_cfg_;
 
@@ -79,13 +93,15 @@ public:
 	static const std::map<ORDER_TYPE, std::string> order_type_;
 	static const std::map<TIME_IN_FORCE, std::string> time_in_force_;
 	static const std::map<INTERVAL, std::string> time_intervals_;
+	static const std::map<ORDER_RESEPONSE_TYPE, std::string> order_response_type_;
+	static const std::map<ORDER_SIDE_EFFECT_TYPE, std::string> order_side_effect_type_;
 
 public:
 	base_api() = default;
 	base_api(std::string host, std::string port) : connection_(host, port) {};
 	virtual void set_keys(std::pair<std::string, std::string>) = 0;
 	virtual void set_cfg(const std::string&) = 0;
-	virtual json_data call(const std::string&, const std::string&, const http::REQTYPE&, const SECURITY_TYPE&) = 0;
+	virtual json_data call(const std::string&, const std::string&, const http::REQTYPE&, const SECURITY_TYPE&, const bool) = 0;
 	virtual json_data open_spot_order(const std::string&,const ORDER_SIDE&, const ORDER_TYPE&, const double&, const double&, const double&, const TIME_IN_FORCE&) = 0;
 	virtual json_data query_spot_order(const std::string&, const ulong&) = 0;
 	virtual json_data open_stoploss_spot_order(const std::string&,const ORDER_SIDE&, const double&, const double&, const double&,const TIME_IN_FORCE&) = 0;
@@ -93,6 +109,9 @@ public:
 	virtual json_data close_all_spot_orders(const std::string&) = 0;
 	virtual json_data get_symbol_price(const std::string&) = 0;
 	virtual json_data get_server_time() = 0;
+	virtual json_data get_account(const bool) = 0;
+	virtual json_data get_isolated_margin_account(const std::string&) = 0;
+	virtual json_data open_isolated_margin_order(const std::string&,const ORDER_SIDE&, const ORDER_TYPE&, const ORDER_RESEPONSE_TYPE&, const ORDER_SIDE_EFFECT_TYPE&, const double&, const double&, const double&, const TIME_IN_FORCE&) = 0;
 	virtual json_data get_kline(const std::string&,const INTERVAL&, const ulong&, const ulong&, const int32_t&) = 0;
 	virtual json_data open_oco_spot_order(const std::string&,const ORDER_SIDE&, const double&, const double&, const double&, const double, const TIME_IN_FORCE&) = 0;
 	virtual json_data close_oco_spot_order(const std::string&, const ulong&) = 0;

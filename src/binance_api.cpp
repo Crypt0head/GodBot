@@ -16,6 +16,7 @@ void binance_api::set_cfg(const std::string& file = BINANCE_API_CONFIG_FILE) {
 	try{
 		boost::property_tree::read_json(file, api_cfg_);
 		apiv_ = api_cfg_.get<std::string>("api_Version");
+		sapiv_ = api_cfg_.get<std::string>("sapi_Version");
 		host = api_cfg_.get<std::string>("api_Host");
 		port = api_cfg_.get<std::string>("api_Port");
 	}
@@ -32,7 +33,7 @@ void binance_api::set_keys(std::pair<std::string, std::string> keys) {
 	secret_ = keys.second;
 }
 
-json_data binance_api::call(const std::string& method, const std::string& p, const http::REQTYPE& rtype = http::REQTYPE::GET, const SECURITY_TYPE& stype = SECURITY_TYPE::NONE) {
+json_data binance_api::call(const std::string& method, const std::string& p, const http::REQTYPE& rtype = http::REQTYPE::GET, const SECURITY_TYPE& stype = SECURITY_TYPE::NONE, const bool sapi = false) {
 	std::string params;
 	std::map<std::string, std::string> headers;
 	
@@ -60,7 +61,12 @@ json_data binance_api::call(const std::string& method, const std::string& p, con
 
 	do{
 		try {
-			connection_.request(apiv_ + method, *reqobj, params, headers, rtype);
+			if (sapi) {
+				connection_.request(sapiv_ + method, *reqobj, params, headers, rtype);
+			}
+			else {
+				connection_.request(apiv_ + method, *reqobj, params, headers, rtype);
+			}
 			break;
 		} catch (const std::exception& e) {
 			std::cerr << e.what() << std::endl;
@@ -147,9 +153,35 @@ json_data binance_api::get_server_time() {
 	return call(endpoint, params, http::REQTYPE::GET);
 }
 
+json_data binance_api::get_account(const bool omitZeroBalances = true) {
+	std::string endpoint = "/account";
+	std::string params = "recvWindow=20000&omitZeroBalances=true";
+	return call(endpoint, params, http::REQTYPE::GET, SECURITY_TYPE::SIGNED);
+}
+
+json_data binance_api::get_isolated_margin_account(const std::string& symbol) {
+	std::string endpoint = "/isolated/account";
+	std::string params = symbol.empty() ? "" : ("symbols=" + symbol) + "&recvWindow=" + std::to_string(20000);
+	return call(endpoint, params, http::REQTYPE::GET, SECURITY_TYPE::SIGNED, true);
+}
+
+json_data binance_api::open_isolated_margin_order(const std::string& symbol,const ORDER_SIDE& side, const ORDER_TYPE& type, const ORDER_RESEPONSE_TYPE& response_type, const ORDER_SIDE_EFFECT_TYPE& side_effect_type, const double& quantity, const double& price, const double& stopprice = 0., const TIME_IN_FORCE& tif = TIME_IN_FORCE::GTC) {
+	std::string endpoint = "/order";
+	std::string params = "symbol=" + symbol + "&isIsolated=true" + "&side=" + order_side_.at(side) 
+						+ "&type=" + order_type_.at(type) + "&quantity=" + std::to_string(quantity)
+						+ "&newOrderRespType=" + order_response_type_.at(response_type) 
+						+ "&sideEffectType=" + order_side_effect_type_.at(side_effect_type)
+						+ "&price=" + std::to_string(price) + "&timeInForce=" + time_in_force_.at(tif);
+	if(type == ORDER_TYPE::STOP_LOSS || type == ORDER_TYPE::STOP_LOSS_LIMIT || 
+		type == ORDER_TYPE::TAKE_PROFIT || type == ORDER_TYPE::TAKE_PROFIT_LIMIT){
+		params += "&stopPrice=" + std::to_string(stopprice);
+	}
+	return call(endpoint,params,http::REQTYPE::POST, SECURITY_TYPE::SIGNED);
+}
+
 json_data binance_api::get_kline(const std::string& symbol,const INTERVAL& i, const ulong& starttime= 0, const ulong& endtime= 0, const int32_t& limit = 1) {
 	std::string endpoint = "/klines";
-	std::string params = "symbol=" + symbol + "&interval=" + time_intervals_.at(INTERVAL::m1) + "&limit=" +std::to_string(limit);
+	std::string params = "symbol=" + symbol + "&interval=" + time_intervals_.at(i) + "&limit=" + std::to_string(limit);
 	if(starttime!=0)
 	{
 		params += "&startTime=" + std::to_string(starttime);	

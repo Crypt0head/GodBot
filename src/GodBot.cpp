@@ -3,7 +3,7 @@
 #include "../hpp/GB_LogData.hpp"
 #include "../hpp/GB_Logger.hpp"
 #include "../hpp/GB_SimpleStrategy.hpp"
-#include "../hpp/GB_RSIStrategy.h"
+#include "../hpp/GB_RSIStrategy.hpp"
 
 #define DEFAULT_CONFIG_FILE "cfg/config.json" 
 #define DEFAULT_SECRETS_FILE "cfg/secrets.json" 

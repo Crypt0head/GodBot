@@ -4,7 +4,7 @@
 #include "../hpp/base_api.hpp"
 #include "../hpp/GB_LogData.hpp"
 #include "../hpp/GB_Logger.hpp"
-#include "../hpp/GB_RSIStrategy.h"
+#include "../hpp/GB_RSIStrategy.hpp"
 #include "../hpp/ta.hpp"
 
 
@@ -43,7 +43,7 @@ void GB_RSIStrategy::Run(){
     }
 
     double rsi14 = RSI(14, vec);
-    double ema14 = 0.;
+    // double ema14 = 0.;
 
     bool in_order = false;
     bool idle = true;
@@ -73,9 +73,7 @@ void GB_RSIStrategy::Run(){
 
             if((curtime-updatetime).count() >= time_map.at(timerframe_) / sec) {
                 rsi14 = RSI(14, vec);
-                ema14 = EMA(14, vec, 13);
-                
-                // std::cout << "Last value: " << vec[vec.size() - 1].get_close_price() << std::endl; 
+                // ema14 = EMA(14, vec, 13);
 
                 updatetime = curtime;
             }
@@ -113,8 +111,8 @@ void GB_RSIStrategy::Run(){
             idletime = curtime;
 
             std::cout << "RSI(14): " << rsi14 << std::endl;
-            std::cout << "EMA(14): " << ema14 << std::endl;
-        }
+            // std::cout << "EMA(14): " << ema14 << std::endl;
+        }        
 
         // lasttime = curtime;
     }
